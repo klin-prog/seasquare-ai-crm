@@ -104,6 +104,24 @@ function nurtureHTML() {
   </div>`;
 }
 
+/* AR/3D プレビュー（家具を部屋に試し置きするイメージ・D23） */
+function arPreviewHTML(p) {
+  const has3D = (p.ar || '').includes('3D'), hasAR = (p.ar || '').includes('AR');
+  return `
+    <div style="margin-bottom:14px">
+      <div class="ar-room">
+        <div class="ar-floor"></div>
+        <div class="ar-item">${Icon('box', 46)}</div>
+        <div class="ar-badges">
+          ${has3D ? '<span class="badge b-accent">3D</span>' : ''}
+          ${hasAR ? '<span class="badge b-info">AR</span>' : ''}
+        </div>
+        <div class="ar-tag">${p.cat} ・ お部屋プレビュー</div>
+      </div>
+      ${hasAR ? `<button class="btn ai sm" style="width:100%;justify-content:center;margin-top:8px" onclick="toast('AR ビューを起動 ・ カメラで部屋に試し置き')">${Icon('box',12)} AR で部屋に試し置き</button>` : ''}
+    </div>`;
+}
+
 /* ===== Detail renderers ===== */
 function openCustomer(id) {
   const c = DATA.CUSTOMERS.find(x => x.id === id);
@@ -260,7 +278,7 @@ function openProduct(sku) {
   DRAWER.open(`商品 ${p.sku}`, `
     <div style="font-size:15px;font-weight:600;margin-bottom:4px">${p.name}</div>
     <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">${p.cat}</div>
-    <div style="background:linear-gradient(135deg,rgba(107,92,255,.04),rgba(6,168,158,.04));border:1px dashed var(--border);border-radius:10px;height:180px;display:grid;place-items:center;color:var(--text-mute);font-size:12px;margin-bottom:14px">商品画像プレースホルダー</div>
+    ${arPreviewHTML(p)}
     ${Grid4(
       Tile('価格', '¥'+(p.price/1000)+'K') +
       Tile('在庫', p.stock+' 点', stockColor) +
@@ -277,7 +295,7 @@ function openProduct(sku) {
     ${p.advice!=='-' ? `${SecLabel('AI 推奨')}<div class="insight" style="padding:14px"><div class="insight-ic">${Icon('lightbulb',16)}</div><div><h4 style="font-size:13px">${p.advice}</h4><p style="font-size:12px">直近 7 日の閲覧+88%。在庫切迫リスクあり。発注ロット 20 点を推奨。</p></div></div>`:''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="toast('編集モード')" style="justify-content:center">${Icon('edit',13)} 編集</button>
-      <button class="btn primary" onclick="confirmDialog({title:'発注書を作成',body:'${p.name} の発注書を AI が下書きします。',confirmText:'下書きを作成',onConfirm:()=>{toast('発注書ドラフトを作成');closeDrawer()}})" style="justify-content:center">${Icon('package',13)} 発注</button>
+      <button class="btn primary" onclick="closeDrawer();openPurchaseDraft('${p.sku}')" style="justify-content:center">${Icon('package',13)} 発注</button>
     </div>
   `);
 }

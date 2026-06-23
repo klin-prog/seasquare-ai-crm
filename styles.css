@@ -894,3 +894,16 @@ textarea.input { height: auto; }
 .wf-branch .wf-ic { background: var(--warn-bg); color: var(--warn); }
 .wf-goal .wf-ic { background: var(--success-bg); color: var(--success); }
 .wf-goal { border-color: var(--success); background: rgba(22,163,74,.04); }
+.wf-node.sim-on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.wf-node.sim-on .wf-ic { background: var(--accent); color: #fff; }
+
+/* ===== Kanban drag (D21) ===== */
+.kanban-card { cursor: grab; }
+.kanban-card:active { cursor: grabbing; }
+
+/* ===== AR / 3D preview (D23) ===== */
+.ar-room { position: relative; height: 180px; border-radius: 10px; overflow: hidden; background: linear-gradient(160deg, #eef1f8, #e3e7f2 55%, #d9dde9); border: 1px solid var(--border); }
+.ar-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: linear-gradient(180deg, var(--accent-bg), var(--ai-bg)); border-top: 1px solid rgba(20,21,42,.06); }
+.ar-item { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-55%); color: var(--brand-primary); filter: drop-shadow(0 12px 18px rgba(20,21,42,.20)); }
+.ar-badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+.ar-tag { position: absolute; bottom: 8px; right: 10px; font-size: 10.5px; color: var(--text-mute); background: rgba(255,255,255,.72); padding: 2px 8px; border-radius: 999px; }

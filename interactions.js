@@ -455,14 +455,14 @@ function showInventoryAlert() {
     `,
     footer: `
       <button class="btn ghost" onclick="closeModal()">閉じる</button>
-      <button class="btn ai" onclick="toast('AI が発注書を一括生成中');closeModal()">${Icon('sparkles',13)} AI 一括発注書生成</button>
+      <button class="btn ai" onclick="closeModal();openApprovalCompose(3)">${Icon('sparkles',13)} AI 発注書ドラフトを確認</button>
     `,
   });
 }
 
 /* ===== AI 下書き → 承認モーダル (item 13) ===== */
-function openApprovalCompose(idx) {
-  const a = DATA.APPROVALS[idx];
+function openApprovalCompose(ref) {
+  const a = (ref && typeof ref === 'object') ? ref : DATA.APPROVALS[ref];
   if (!a) return;
   const suppressNote = a.kind === 'メール一括送付'
     ? `<div style="font-size:11.5px;color:var(--text-mute);margin-top:8px;display:flex;align-items:center;gap:6px">${Icon('pause',11)} 配信頻度上限に達した顧客は自動で除外されます（過剰配信の抑制）</div>` : '';
@@ -495,6 +495,21 @@ function openApprovalCompose(idx) {
   });
 }
 
+/* 在庫→発注→ワークフロー導線 (D22): 商品から発注書ドラフトを起票 */
+function openPurchaseDraft(sku) {
+  const p = (DATA.INVENTORY || []).find(x => x.sku === sku) || { name: '商品', stock: 0 };
+  const qty = 20;
+  openApprovalCompose({
+    kind: '発注書ドラフト',
+    content: `${p.name} ${qty}点 を発注`,
+    target: 'メーカーA',
+    impact: '-',
+    risk: p.stock < 5 ? '高' : '中',
+    reason: `在庫残 ${p.stock} 点・AI 発注推奨`,
+    draft: `発注書（ドラフト）\n品目：${p.name} × ${qty}点\n発注先：メーカーA／希望納期：5/30\n根拠：在庫残 ${p.stock} 点、直近の閲覧増。\n承認後、発注ワークフローに自動登録されます。`,
+  });
+}
+
 /* ===== Misc handlers ===== */
 function switchTaskTab(el, label) {
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -517,7 +532,7 @@ Object.assign(window, {
   bulkApproveAll, bulkRejectAll, refreshDashboard,
   exportCSV, printOrderLabels, regenerateInsights,
   showInventoryAlert, switchTaskTab, filterStream,
-  openApprovalCompose,
+  openApprovalCompose, openPurchaseDraft,
 });
 
 /* ===== Hijack the openIntegrationDetail handler used in HTML – route to details.js openIntegration ===== */

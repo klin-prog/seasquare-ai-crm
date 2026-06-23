@@ -464,14 +464,16 @@ function renderDeals() {
   const aiN = allItems.filter(d => d.src === 'AI').length, manN = allItems.length - aiN;
   const sub = document.querySelector('#view-deals .page-sub');
   if (sub) sub.textContent = `月内見込 ${yen(openSum)} ・ AI 自動生成 ${aiN} 件 / 手動 ${manN} 件`;
-  $('#deals-board').innerHTML = DATA.DEALS_BOARD.map(c => `
-    <div class="kanban-col col-${c.color}">
+  $('#deals-board').innerHTML = DATA.DEALS_BOARD.map(c => {
+    const colSum = '¥' + Math.round(c.items.reduce((s, d) => s + d.a, 0) / 1000) + 'K';
+    return `
+    <div class="kanban-col col-${c.color}" ondragover="event.preventDefault()" ondrop="dealDrop(event,'${c.key}')">
       <h4>
-        <span>${c.title} <span style="color:var(--text-dim);margin-left:4px">${c.count}</span></span>
-        <span style="color:var(--text-soft);text-transform:none;font-size:11px">${c.sum}</span>
+        <span>${c.title} <span style="color:var(--text-dim);margin-left:4px">${c.items.length}</span></span>
+        <span style="color:var(--text-soft);text-transform:none;font-size:11px">${colSum}</span>
       </h4>
       ${c.items.map((d,i) => `
-        <div class="kanban-card" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}')">
+        <div class="kanban-card" draggable="true" ondragstart="dealDragStart(event,'${c.key}',${i})" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}')">
           <div class="who">${d.c}</div>
           <div class="topic">${d.t}</div>
           <div class="row">
@@ -481,8 +483,22 @@ function renderDeals() {
         </div>
       `).join('')}
       <button class="btn ghost sm" onclick="toast('商談を追加')" style="width:100%;justify-content:center;margin-top:4px;color:var(--text-mute)">${Icon('plus',12)} 追加</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+/* 商談カードのドラッグ&ドロップ移動 (D21) */
+function dealDragStart(e, key, idx) { e.dataTransfer.setData('text/plain', key + ':' + idx); e.dataTransfer.effectAllowed = 'move'; }
+function dealDrop(e, toKey) {
+  e.preventDefault();
+  const [fromKey, idxS] = (e.dataTransfer.getData('text/plain') || '').split(':');
+  if (fromKey === toKey) return;
+  const from = DATA.DEALS_BOARD.find(c => c.key === fromKey), to = DATA.DEALS_BOARD.find(c => c.key === toKey);
+  if (!from || !to) return;
+  const item = from.items.splice(+idxS, 1)[0];
+  if (!item) return;
+  to.items.push(item);
+  renderDeals();
+  toast(`${item.c}「${item.t}」を「${to.title}」へ移動`);
 }
 
 /* ===== Tasks ===== */
@@ -594,17 +610,45 @@ function renderWfCanvas() {
   const c = $('#wf-canvas'); if (!c) return;
   const w = DATA.WORKFLOWS.find(x => x.id === selectedWf) || DATA.WORKFLOWS[0];
   const meta = { trigger:{ic:'zap',t:'トリガー'}, send:{ic:'mail',t:'送信'}, wait:{ic:'clock',t:'待機'}, branch:{ic:'filter',t:'分岐'}, goal:{ic:'check',t:'ゴール'} };
+  const leadOpts = DATA.LEADS.map(l => `<option value="${l.id}">${l.name}（AR体験${(l.acts || []).includes('ar_view') ? '有' : '無'}）</option>`).join('');
   c.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div><div class="card-title">${w.name}</div><div class="card-sub" style="display:flex;align-items:center;gap:5px;margin-top:2px">${Icon('zap',11)} トリガー: ${w.trigger}</div></div>
       ${statusBadge(w.status)}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:11.5px;color:var(--text-mute)">サンプル顧客で分岐をシミュレート:</span>
+      <select class="select" id="wf-sim-lead" style="height:30px">${leadOpts}</select>
+      <button class="btn ai sm" onclick="simulateWorkflow()">${Icon('play',11)} 実行</button>
     </div>
     <div style="display:flex;flex-direction:column">
       ${w.nodes.map((n, i) => {
         const m = meta[n.type] || { ic:'cpu', t:n.type };
-        return `<div class="wf-node wf-${n.type}"><span class="wf-ic">${Icon(m.ic, 14)}</span><div style="min-width:0"><div class="wf-type">${m.t}</div><div class="wf-label">${n.label}</div></div></div>${i < w.nodes.length - 1 ? '<div class="wf-conn"></div>' : ''}`;
+        return `<div class="wf-node wf-${n.type}" data-node="${i}"><span class="wf-ic">${Icon(m.ic, 14)}</span><div style="min-width:0"><div class="wf-type">${m.t}</div><div class="wf-label">${n.label}</div></div></div>${i < w.nodes.length - 1 ? '<div class="wf-conn"></div>' : ''}`;
       }).join('')}
-    </div>`;
+    </div>
+    <div id="wf-sim-result"></div>`;
+}
+function simulateWorkflow() {
+  const w = DATA.WORKFLOWS.find(x => x.id === selectedWf) || DATA.WORKFLOWS[0];
+  const sel = document.querySelector('#wf-sim-lead');
+  const lead = DATA.LEADS.find(l => l.id === +(sel && sel.value)) || DATA.LEADS[0];
+  const hasAR = (lead.acts || []).includes('ar_view');
+  const nodes = [...document.querySelectorAll('#wf-canvas .wf-node')];
+  nodes.forEach(n => n.classList.remove('sim-on'));
+  const res = $('#wf-sim-result'); if (res) res.innerHTML = '';
+  const branch = w.nodes.find(n => n.type === 'branch');
+  nodes.forEach((node, k) => setTimeout(() => {
+    node.classList.add('sim-on');
+    if (k === nodes.length - 1 && res) {
+      res.innerHTML = `
+        <div style="margin-top:16px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:10px;padding:12px 14px;font-size:12.5px">
+          <div style="font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${Icon('zap',12)} シミュレーション結果 — ${lead.name}（AR体験: ${hasAR ? 'あり' : 'なし'}）</div>
+          <div style="color:var(--text-soft);line-height:1.7">分岐「${branch ? branch.label : '-'}」は <b style="color:var(--accent-hi)">${hasAR ? 'Yes' : 'No'}</b> 経路。${hasAR ? 'AR閲覧済みのため 3Dコーデ提案へ進みます。' : 'AR未閲覧のため 実例カタログ送付へ進みます。'}</div>
+        </div>`;
+    }
+  }, k * 300));
+  toast(`${lead.name} でワークフローを実行`);
 }
 let funnelChart = null;
 function renderFunnelChart() {
