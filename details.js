@@ -59,6 +59,46 @@ const Timeline = (items) => `<div style="display:flex;flex-direction:column;gap:
 `).join('')}</div>`;
 const Actions = (btns) => `<div style="display:grid;grid-template-columns:repeat(${btns.length},1fr);gap:8px;margin-top:18px">${btns.map(b=>`<button class="btn ${b.kind||''}" onclick="${b.onclick||''}" style="justify-content:center">${b.label}</button>`).join('')}</div>`;
 
+/* ===== Score breakdown / action history / nurture (items 7, 8, 10, 11) ===== */
+function scoreBreakdownHTML(acts, score) {
+  const rows = scoreRows(acts);
+  return `
+    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border-soft)">
+        <span style="font-size:11.5px;color:var(--text-mute)">スコア = Σ 行動ウェイト</span>
+        <span style="font-size:18px;font-weight:700;color:var(--accent-hi)">${score}</span>
+      </div>
+      ${rows.map(r => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border-soft);font-size:12.5px">
+          <span style="color:var(--text-mute);display:grid;place-items:center;width:16px">${Icon(r.ic, 13)}</span>
+          <span style="flex:1">${r.label}</span>
+          <span style="font-weight:700;color:var(--accent-hi)">+${r.w}</span>
+        </div>`).join('')}
+    </div>`;
+}
+function actionHistoryHTML(acts) {
+  const times = ['今日 14:20', '今日 11:05', '昨日 21:30', '昨日 18:12', '一昨日 13:40', '5/17 20:05', '5/15 09:50', '5/12 22:10'];
+  const rows = scoreRows(acts);
+  return `<div style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
+    ${rows.map((r, i) => `<div style="display:flex;gap:10px"><span class="cell-mono" style="color:var(--text-mute);flex-shrink:0;min-width:74px">${times[i] || '—'}</span><span>${r.label}</span></div>`).join('')}
+  </div>`;
+}
+function nurtureHTML() {
+  return `<div style="display:flex;flex-direction:column;gap:0">
+    ${NURTURE.map((s, i) => `
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="min-width:50px;text-align:center;font-size:10.5px;font-weight:700;color:var(--accent-hi);background:var(--accent-bg);border-radius:6px;padding:3px 6px">${s.day}</div>
+          ${i < NURTURE.length - 1 ? `<div style="width:1px;flex:1;min-height:22px;background:var(--border);margin:4px 0"></div>` : ''}
+        </div>
+        <div style="padding-bottom:14px">
+          <div style="font-size:12.5px;font-weight:500">${s.label}</div>
+          <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${s.note}</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
 /* ===== Detail renderers ===== */
 function openCustomer(id) {
   const c = DATA.CUSTOMERS.find(x => x.id === id);
@@ -66,7 +106,7 @@ function openCustomer(id) {
   DRAWER.open(`<div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${c.name[0]}</div><span>${c.name}</span></div>`, `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div class="cell-mono">${c.id}</div>
-      ${segBadge(c.seg)}
+      <div style="display:flex;gap:6px;align-items:center">${fsegBadge(c.fseg)}${isSuppressed(c) ? suppBadge() : ''}</div>
     </div>
     ${Grid4(
       Tile('AI スコア', c.score, 'var(--accent-hi)') +
@@ -74,13 +114,18 @@ function openCustomer(id) {
       Tile('累計購入', c.count+' 回') +
       Tile('チャネル', c.ch)
     )}
-    ${SecLabel('直近の行動')}
-    <div style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:30</span><span>ソファ詳細を閲覧（3回目）</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:24</span><span>AR で部屋に試し置き</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:18</span><span>お気に入りに追加</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/18 14:02</span><span>トップページを訪問</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">${c.last}</span><span>前回購入</span></div>
+    ${SecLabel('AI スコア内訳')}
+    ${scoreBreakdownHTML(c.acts, c.score)}
+    ${SecLabel('行動履歴')}
+    ${actionHistoryHTML(c.acts)}
+    <div style="display:flex;gap:10px;margin-top:8px;font-size:12px;color:var(--text-mute)"><span class="cell-mono" style="min-width:74px">${c.last}</span><span>前回購入</span></div>
+    ${SecLabel('配信ステータス（過剰配信の抑制）')}
+    <div style="background:${isSuppressed(c) ? 'var(--danger-bg)' : '#fafbfd'};border:1px solid ${isSuppressed(c) ? 'rgba(225,29,72,.22)' : 'var(--border)'};border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">最終配信日</span><span>${c.dlv ? c.dlv.last : '—'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">今週の配信回数</span><span>${c.dlv ? c.dlv.week : 0} / 上限 ${c.dlv ? c.dlv.cap : 2} 回</span></div>
+      ${isSuppressed(c)
+        ? `<div style="color:var(--danger);font-weight:600;display:flex;align-items:center;gap:6px">${Icon('pause',12)} 配信頻度上限に到達 — 自動配信を抑制中</div>`
+        : `<div style="color:var(--success);display:flex;align-items:center;gap:6px">${Icon('check',12)} 配信可能</div>`}
     </div>
     ${SecLabel('AI 推奨アクション')}
     <div class="insight" style="padding:14px">
@@ -109,15 +154,19 @@ function openLead(id) {
       Tile('チャネル', l.ch) +
       Tile('優先度', l.score>=90?'高':l.score>=80?'中':'低')
     )}
+    ${SecLabel('AI スコア内訳（何で何点か）')}
+    ${scoreBreakdownHTML(l.acts, l.score)}
     ${SecLabel('直近行動')}
     <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.6">${l.last}</div>
+    ${SecLabel('育成シナリオ（日数ベース）')}
+    ${nurtureHTML()}
     ${SecLabel('AI 推奨アクション')}
     <div class="insight" style="padding:14px">
       <div class="insight-ic">${Icon('sparkles',16)}</div>
       <div>
         <h4 style="font-size:13px">${l.action}</h4>
         <p style="font-size:12px">スコア ${l.score} ・ ${l.seg}セグメント。${l.ch} 経由が最適チャネル。</p>
-        <div class="impact" style="font-size:11.5px;color:var(--success);margin-top:6px;font-weight:500">予測 CV: ${Math.round(l.revenue/30000)}件 / ${yen(l.revenue)}</div>
+        <div class="impact" style="font-size:11.5px;color:var(--success);margin-top:6px;font-weight:500">育成完了時 想定CV: ${Math.round(l.revenue/30000)}件 / ${yen(l.revenue)}（〜Day30）</div>
       </div>
     </div>
     ${SecLabel('生成メッセージプレビュー')}

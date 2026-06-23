@@ -265,7 +265,7 @@
 
         <div class="filterbar">
           <input class="input" placeholder="顧客名・メール・電話 ..." style="flex:1;min-width:200px">
-          <select class="select"><option>全セグメント</option><option>新規</option><option>リピート</option><option>VIP</option><option>休眠</option></select>
+          <select class="select"><option>全セグメント</option><option>新規</option><option>高単価検討中</option><option>リピート育成中</option><option>VIP</option><option>離脱リスク</option><option>離脱(1年+)</option></select>
           <select class="select"><option>LTV スコア</option><option>高 (80+)</option><option>中 (50-79)</option><option>低</option></select>
           <select class="select"><option>登録チャネル</option><option>EC</option><option>LINE</option><option>店舗</option></select>
           <button class="btn primary" onclick="applyCustomerFilter()">適用</button>
@@ -304,7 +304,7 @@
           </div>
         </div>
 
-        <div class="tile-grid" style="margin-bottom:14px">
+        <div class="tile-grid" id="lead-tiles" style="margin-bottom:14px">
           <div class="tile"><div class="lab">スコア 90+</div><div class="val" style="color:var(--danger)">3 名</div></div>
           <div class="tile"><div class="lab">スコア 80-89</div><div class="val" style="color:var(--warn)">1 名</div></div>
           <div class="tile"><div class="lab">スコア 70-79</div><div class="val" style="color:var(--success)">3 名</div></div>

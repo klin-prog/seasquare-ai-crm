@@ -1,28 +1,76 @@
 // Mock data for AI×CRM console
+
+/* ===== 行動スコアモデル (items 7, 8) =====
+   家具ECは「高単価・長検討・空間で選ぶ」。RFM の頻度偏重ではなく、
+   購入意欲を表す“空間検討”行動（AR・マイルーム）を高ウェイトに置く。
+   スコア = Σ(行動ウェイト)（上限99）。リード/顧客詳細に内訳を表示する。 */
+window.ACTION_TYPES = {
+  ar_view:    { label: 'AR で部屋に試し置き',      w: 30, ic: 'box' },
+  myroom:     { label: 'マイルーム（コーデ保存）', w: 26, ic: 'home' },
+  cart_hold:  { label: 'カート保留',              w: 20, ic: 'deal' },
+  pdp_repeat: { label: '商品詳細を複数回閲覧',     w: 14, ic: 'eye' },
+  long_stay:  { label: '長時間滞在（15分+）',      w: 12, ic: 'clock' },
+  favorite:   { label: 'お気に入り追加',          w: 12, ic: 'flame' },
+  catalog_dl: { label: '実例カタログDL',          w: 10, ic: 'download' },
+  price_cmp:  { label: '価格帯比較ページ',         w:  9, ic: 'chart' },
+  revisit:    { label: '再訪問',                  w:  7, ic: 'refresh' },
+  email_open: { label: 'メール開封',              w:  5, ic: 'mail' },
+};
+
+/* 育成シナリオ — 家具は週〜月単位で検討。即時CVではなく日数ベースで導線化 (item 10) */
+window.NURTURE = [
+  { day: 'Day 0',  label: 'AR体験リンクを送付（LINE）', note: '検討初期。空間イメージを提示し関心を維持' },
+  { day: 'Day 3',  label: '閲覧状況で分岐：コーデ提案 / 実例カタログ', note: 'AR閲覧者には3Dコーデ、未閲覧者には事例を送付' },
+  { day: 'Day 7',  label: '期間限定クーポン + 設置事例', note: '比較検討期。背中を押すオファー' },
+  { day: 'Day 30', label: '未CVなら来店予約 / オンライン相談を提案', note: '長期検討者をオフライン接客へ' },
+];
+
 window.DATA = {
+  // fseg = 家具向けセグメント（新規 / 高単価検討中 / リピート育成中 / VIP / 離脱リスク / 離脱(1年+)）
+  // dlv  = 配信抑制（last: 最終配信, week: 今週配信回数, cap: 週上限）。week>=cap で「送信抑制中」
   CUSTOMERS: [
-    {id:'CST-001',name:'佐藤 美咲',seg:'リピート',ltv:480000,last:'2026/04/12',count:6,ch:'EC',score:94},
-    {id:'CST-002',name:'田中 健一',seg:'新規',    ltv:180000,last:'2026/05/15',count:1,ch:'広告',score:88},
-    {id:'CST-003',name:'山本 葵',  seg:'VIP',     ltv:820000,last:'2026/05/08',count:11,ch:'LINE',score:82},
-    {id:'CST-004',name:'鈴木 大輔',seg:'新規',    ltv:120000,last:'2026/05/18',count:0,ch:'EC',score:78},
-    {id:'CST-005',name:'高橋 真理',seg:'休眠',    ltv:240000,last:'2025/11/05',count:3,ch:'LINE',score:74},
-    {id:'CST-006',name:'伊藤 拓海',seg:'新規',    ltv:80000, last:'2026/05/19',count:0,ch:'広告',score:69},
-    {id:'CST-007',name:'渡辺 さくら',seg:'リピート',ltv:340000,last:'2026/03/20',count:4,ch:'EC',score:65},
-    {id:'CST-008',name:'中村 健太郎',seg:'VIP',   ltv:1240000,last:'2026/05/10',count:18,ch:'店舗',score:91},
-    {id:'CST-009',name:'小林 由美',seg:'リピート',ltv:280000,last:'2026/04/28',count:3,ch:'EC',score:72},
-    {id:'CST-010',name:'加藤 翔',  seg:'休眠',    ltv:90000, last:'2025/08/15',count:1,ch:'EC',score:42},
-    {id:'CST-011',name:'吉田 ありさ',seg:'新規',  ltv:60000, last:'2026/05/19',count:0,ch:'LINE',score:55},
-    {id:'CST-012',name:'山口 凛',  seg:'リピート',ltv:520000,last:'2026/05/12',count:7,ch:'EC',score:80},
+    {id:'CST-001',name:'佐藤 美咲',seg:'リピート',fseg:'リピート育成中',ltv:480000,last:'2026/04/12',count:6,ch:'EC',score:90,
+      acts:['ar_view','myroom','cart_hold','pdp_repeat'], dlv:{last:'2026/06/22',week:2,cap:2}},
+    {id:'CST-002',name:'田中 健一',seg:'新規',fseg:'高単価検討中',ltv:180000,last:'2026/05/15',count:1,ch:'広告',score:75,
+      acts:['ar_view','pdp_repeat','catalog_dl','long_stay','price_cmp'], dlv:{last:'2026/06/21',week:1,cap:2}},
+    {id:'CST-003',name:'山本 葵',  seg:'VIP',fseg:'VIP',ltv:820000,last:'2026/05/08',count:11,ch:'LINE',score:94,
+      acts:['ar_view','myroom','favorite','long_stay','pdp_repeat'], dlv:{last:'2026/06/22',week:2,cap:2}},
+    {id:'CST-004',name:'鈴木 大輔',seg:'新規',fseg:'新規',ltv:120000,last:'2026/05/18',count:0,ch:'EC',score:55,
+      acts:['price_cmp','pdp_repeat','long_stay','cart_hold'], dlv:{last:'2026/06/19',week:1,cap:2}},
+    {id:'CST-005',name:'高橋 真理',seg:'休眠',fseg:'離脱リスク',ltv:240000,last:'2025/11/05',count:3,ch:'LINE',score:34,
+      acts:['email_open','revisit','catalog_dl','favorite'], dlv:{last:'2026/06/10',week:0,cap:2}},
+    {id:'CST-006',name:'伊藤 拓海',seg:'新規',fseg:'新規',ltv:80000, last:'2026/05/19',count:0,ch:'広告',score:40,
+      acts:['pdp_repeat','price_cmp','favorite','email_open'], dlv:{last:'2026/06/18',week:0,cap:2}},
+    {id:'CST-007',name:'渡辺 さくら',seg:'リピート',fseg:'リピート育成中',ltv:340000,last:'2026/03/20',count:4,ch:'EC',score:36,
+      acts:['pdp_repeat','catalog_dl','revisit','email_open'], dlv:{last:'2026/06/15',week:1,cap:2}},
+    {id:'CST-008',name:'中村 健太郎',seg:'VIP',fseg:'VIP',ltv:1240000,last:'2026/05/10',count:18,ch:'店舗',score:90,
+      acts:['ar_view','myroom','long_stay','favorite','catalog_dl'], dlv:{last:'2026/06/20',week:1,cap:3}},
+    {id:'CST-009',name:'小林 由美',seg:'リピート',fseg:'リピート育成中',ltv:280000,last:'2026/04/28',count:3,ch:'EC',score:45,
+      acts:['pdp_repeat','favorite','long_stay','revisit'], dlv:{last:'2026/06/12',week:0,cap:2}},
+    {id:'CST-010',name:'加藤 翔',  seg:'休眠',fseg:'離脱(1年+)',ltv:90000, last:'2025/05/20',count:1,ch:'EC',score:12,
+      acts:['email_open','revisit'], dlv:{last:'2026/02/01',week:0,cap:2}},
+    {id:'CST-011',name:'吉田 ありさ',seg:'新規',fseg:'新規',ltv:60000, last:'2026/05/19',count:0,ch:'LINE',score:28,
+      acts:['pdp_repeat','price_cmp','email_open'], dlv:{last:'2026/06/17',week:1,cap:2}},
+    {id:'CST-012',name:'山口 凛',  seg:'リピート',fseg:'高単価検討中',ltv:520000,last:'2026/05/12',count:7,ch:'EC',score:68,
+      acts:['ar_view','pdp_repeat','favorite','long_stay'], dlv:{last:'2026/06/13',week:0,cap:2}},
   ],
 
+  // score は acts（行動）から導出（item 7）。acts に ar_view/myroom を持つ客が高スコア（item 8）
   LEADS: [
-    {id:1,name:'佐藤 美咲',score:94,seg:'リピート',last:'ソファ詳細を3回閲覧 / カート保留',action:'AR体験リンクをLINE送付',revenue:189000,ch:'LINE'},
-    {id:2,name:'田中 健一',score:88,seg:'新規',    last:'ダイニング3点セット閲覧',          action:'実例カタログ + 10%クーポン',revenue:178000,ch:'メール'},
-    {id:3,name:'中村 健太郎',score:91,seg:'VIP',  last:'寝室家具ページ滞在 18分',           action:'専任担当による電話フォロー',revenue:480000,ch:'電話'},
-    {id:4,name:'山本 葵',  score:82,seg:'VIP',    last:'お気に入り5件 / 滞在23分',           action:'コーディネーター提案',revenue:260000,ch:'メール'},
-    {id:5,name:'鈴木 大輔',score:78,seg:'新規',    last:'価格帯比較ページ滞在',              action:'価格相談チャット起動',revenue:120000,ch:'チャット'},
-    {id:6,name:'高橋 真理',score:74,seg:'休眠',    last:'前回購入から180日経過',              action:'リピート提案(ラグ・カーテン)',revenue:48000,ch:'メール'},
-    {id:7,name:'伊藤 拓海',score:69,seg:'新規',    last:'広告経由訪問・3商品閲覧',            action:'初回限定クーポン送付',revenue:36000,ch:'メール'},
+    {id:1,name:'佐藤 美咲',score:90,seg:'リピート',last:'ソファ詳細を3回閲覧 / カート保留',action:'AR体験リンクをLINE送付',revenue:189000,ch:'LINE',
+      acts:['ar_view','myroom','cart_hold','pdp_repeat']},
+    {id:2,name:'田中 健一',score:75,seg:'新規',    last:'ダイニング3点セット閲覧',          action:'実例カタログ + 10%クーポン',revenue:178000,ch:'メール',
+      acts:['ar_view','pdp_repeat','catalog_dl','long_stay','price_cmp']},
+    {id:3,name:'中村 健太郎',score:90,seg:'VIP',  last:'寝室家具ページ滞在 18分',           action:'専任担当による電話フォロー',revenue:480000,ch:'電話',
+      acts:['ar_view','myroom','long_stay','favorite','catalog_dl']},
+    {id:4,name:'山本 葵',  score:94,seg:'VIP',    last:'お気に入り5件 / 滞在23分',           action:'コーディネーター提案',revenue:260000,ch:'メール',
+      acts:['ar_view','myroom','favorite','long_stay','pdp_repeat']},
+    {id:5,name:'鈴木 大輔',score:55,seg:'新規',    last:'価格帯比較ページ滞在',              action:'価格相談チャット起動',revenue:120000,ch:'チャット',
+      acts:['price_cmp','pdp_repeat','long_stay','cart_hold']},
+    {id:6,name:'高橋 真理',score:22,seg:'休眠',    last:'前回購入から180日経過',              action:'リピート提案(ラグ・カーテン)',revenue:48000,ch:'メール',
+      acts:['email_open','revisit','catalog_dl']},
+    {id:7,name:'伊藤 拓海',score:40,seg:'新規',    last:'広告経由訪問・3商品閲覧',            action:'初回限定クーポン送付',revenue:36000,ch:'メール',
+      acts:['pdp_repeat','price_cmp','favorite','email_open']},
   ],
 
   TASKS: [

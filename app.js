@@ -133,6 +133,17 @@ function chBadge(c) {
   const m = { 'LINE':'b-success','メール':'b-info','電話':'b-warn','チャット':'b-accent','EC':'b-info','店舗':'b-neutral','広告':'b-warn' };
   return `<span class="badge ${m[c]||'b-neutral'}">${c}</span>`;
 }
+function fsegBadge(s) {
+  const m = { '新規':'b-info','高単価検討中':'b-accent','リピート育成中':'b-warn','VIP':'b-accent','離脱リスク':'b-danger','離脱(1年+)':'b-neutral' };
+  return `<span class="badge ${m[s]||'b-neutral'}">${s}</span>`;
+}
+
+/* ===== 行動スコア (items 7, 8) — score = Σ(action weight) ===== */
+function leadScore(acts) { return Math.min(99, (acts || []).reduce((s, a) => s + ((ACTION_TYPES[a] && ACTION_TYPES[a].w) || 0), 0)); }
+function scoreRows(acts) { return (acts || []).map(a => ({ key: a, ...ACTION_TYPES[a] })).filter(x => x.label).sort((a, b) => b.w - a.w); }
+/* ===== 配信抑制 (item 15) ===== */
+function isSuppressed(c) { return !!(c.dlv && c.dlv.week >= c.dlv.cap); }
+function suppBadge() { return `<span class="badge b-danger" title="配信頻度上限に到達">${Icon('pause', 9)} 送信抑制中</span>`; }
 
 /* ===== Navigation ===== */
 const PAGES = {
@@ -356,15 +367,18 @@ function renderInsightCard(i, idx, featured) {
 
 /* ===== Customers ===== */
 function renderCustomers() {
-  $('#customers-table tbody').innerHTML = DATA.CUSTOMERS.map(c => `
+  const seg = window.customerFilter || '全セグメント';
+  const rows = DATA.CUSTOMERS.filter(c => seg === '全セグメント' || c.fseg === seg);
+  $('#customers-table tbody').innerHTML = rows.map(c => `
     <tr class="clickable" onclick="openCustomer('${c.id}')">
       <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
       <td class="cell-mono">${c.id}</td>
       <td><div style="display:flex;align-items:center;gap:10px">
         <div class="avatar" style="width:26px;height:26px;font-size:10.5px">${c.name[0]}</div>
         <span style="font-weight:500">${c.name}</span>
+        ${isSuppressed(c) ? suppBadge() : ''}
       </div></td>
-      <td>${segBadge(c.seg)}</td>
+      <td>${fsegBadge(c.fseg)}</td>
       <td style="font-weight:500">${yen(c.ltv)}</td>
       <td class="cell-mute">${c.last}</td>
       <td>${c.count}回</td>
@@ -372,10 +386,31 @@ function renderCustomers() {
       <td>${scoreChip(c.score)}</td>
     </tr>
   `).join('');
+  const pg = document.querySelector('#view-customers .pager span');
+  if (pg) pg.textContent = seg === '全セグメント' ? '1 — 12 / 5,432 件' : `${rows.length} 件（「${seg}」で絞り込み）`;
 }
+function applyCustomerFilter() {
+  const sel = document.querySelector('#view-customers .filterbar select');
+  window.customerFilter = sel ? sel.value : '全セグメント';
+  renderCustomers();
+  const n = DATA.CUSTOMERS.filter(c => window.customerFilter === '全セグメント' || c.fseg === window.customerFilter).length;
+  toast(`セグメント「${window.customerFilter}」: ${n} 件`);
+}
+window.applyCustomerFilter = applyCustomerFilter;
 
 /* ===== Leads ===== */
+function renderLeadTiles() {
+  const ls = DATA.LEADS;
+  const n = (lo, hi) => ls.filter(l => l.score >= lo && l.score < hi).length;
+  const el = $('#lead-tiles'); if (!el) return;
+  el.innerHTML = `
+    <div class="tile"><div class="lab">スコア 90+</div><div class="val" style="color:var(--danger)">${ls.filter(l => l.score >= 90).length} 名</div></div>
+    <div class="tile"><div class="lab">スコア 80-89</div><div class="val" style="color:var(--warn)">${n(80, 90)} 名</div></div>
+    <div class="tile"><div class="lab">スコア 70-79</div><div class="val" style="color:var(--success)">${n(70, 80)} 名</div></div>
+    <div class="tile"><div class="lab">スコア 70未満</div><div class="val">${ls.filter(l => l.score < 70).length} 名</div></div>`;
+}
 function renderLeads() {
+  renderLeadTiles();
   $('#leads-table tbody').innerHTML = DATA.LEADS.map(l => `
     <tr class="clickable" onclick="openLead(${l.id})">
       <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
@@ -645,11 +680,14 @@ function wireStaticElements() {
   const bell = $$('header .icon-btn').slice(-1)[0];
   if (bell) bell.onclick = () => toast('通知: 未読 3 件（AI 承認待ち 4 件、在庫アラート 3 件）');
 
-  // Filter 「適用」 buttons
-  $$('.filterbar .btn.primary').forEach(b => b.onclick = () => toast('フィルターを適用しました'));
+  // Filter 「適用」 button (customers) — real furniture-segment filter (item 9)
+  $$('.filterbar .btn.primary').forEach(b => b.onclick = applyCustomerFilter);
 }
 
 /* ===== Boot ===== */
+// スコアは行動から導出（item 7）— ここで一元計算しておく
+DATA.LEADS.forEach(l => l.score = leadScore(l.acts));
+DATA.CUSTOMERS.forEach(c => c.score = leadScore(c.acts));
 buildSidebar();
 renderDashboard();
 renderCustomers();
