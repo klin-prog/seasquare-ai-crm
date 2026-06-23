@@ -188,7 +188,7 @@ function openLead(id) {
       <div class="insight-ic">${Icon('sparkles',16)}</div>
       <div>
         <h4 style="font-size:13px">${l.action}</h4>
-        <p style="font-size:12px">スコア ${l.score} ・ ${l.seg}セグメント。${l.ch} 経由が最適チャネル。</p>
+        <p style="font-size:12px">${(scoreRows(l.acts)[0] || {}).label || '直近行動'} など ${(l.acts || []).length} 件の高関与行動を検知。スコア ${l.score} ・ ${l.ch} が最適チャネル。</p>
         <div class="impact" style="font-size:11.5px;color:var(--success);margin-top:6px;font-weight:500">育成完了時 想定CV: ${Math.round(l.revenue/30000)}件 / ${yen(l.revenue)}（〜Day30）</div>
       </div>
     </div>

@@ -326,41 +326,64 @@ function newConnection() {
 }
 
 /* ===== Analytics ===== */
+// 自然言語クエリ → キーワードで出し分け（4b）
+const QUERY_SETS = [
+  { kw:['休眠','離脱','チャーン','リエンゲージ','再購入'], q:'休眠顧客の再購入見込み',
+    sql:"SELECT segment, COUNT(*) AS users, AVG(repurchase_rate) AS rate\nFROM customers\nWHERE last_order_date < DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)\nGROUP BY segment\nORDER BY rate DESC;",
+    cols:['セグメント','人数','再購入率'], rows:[['離脱(1年+)','1,204','3.1%'],['離脱リスク','862','8.4%'],['リピート育成中','540','22.6%']],
+    note:'リピート育成中は再購入率が高い。優先的に育成シナリオへ載せるのが有効。' },
+  { kw:['在庫','発注','回転','velocity','補充'], q:'在庫回転と発注推奨',
+    sql:"WITH velocity AS (\n  SELECT sku, SUM(qty)/30.0 AS per_day FROM orders\n  WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) GROUP BY sku )\nSELECT i.sku, ROUND(v.per_day*30,1) AS turn, i.stock\nFROM inventory i JOIN velocity v USING(sku) ORDER BY turn DESC;",
+    cols:['SKU','回転/月','在庫'], rows:[['TABLE-001','2.4','3'],['SOFA-001','1.8','8'],['CURTAIN-001','0.4','80']],
+    note:'TABLE-001 は要発注（在庫3）、CURTAIN-001 は滞留（回転0.4）。' },
+  { kw:['AR','3D','マイルーム','体験'], q:'AR体験とCVの相関',
+    sql:"SELECT ar_used, ROUND(AVG(cv),3) AS cvr, ROUND(AVG(aov)) AS aov\nFROM sessions\nGROUP BY ar_used ORDER BY cvr DESC;",
+    cols:['AR体験','CVR','客単価'], rows:[['あり','12.4%','¥168,000'],['なし','5.8%','¥92,000']],
+    note:'AR体験ありは CVR 2.1倍・客単価 1.8倍。AR導線の強化が有効。' },
+  { kw:['LTV','コホート','獲得'], q:'獲得月別 12ヶ月LTV',
+    sql:"SELECT cohort_month, ROUND(AVG(ltv_12m)) AS ltv, channel\nFROM cohorts\nGROUP BY cohort_month, channel ORDER BY ltv DESC LIMIT 5;",
+    cols:['獲得月','12ヶ月LTV','チャネル'], rows:[['2024-04','¥186,000','LINE'],['2024-02','¥162,000','LINE'],['2024-05','¥121,000','EC']],
+    note:'LINE獲得層のLTVが高い。獲得チャネル配分の見直し余地あり。' },
+  { kw:[], q:'ソファカテゴリ 閲覧TOP3',
+    sql:"SELECT product_name, SUM(views) AS total, ROUND(AVG(cvr),3) AS cvr\nFROM access_logs\nWHERE category='ソファ' AND date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\nGROUP BY product_name ORDER BY total DESC LIMIT 3;",
+    cols:['商品名','閲覧数','CVR'], rows:[['モダンコーナーソファ','1,240','8.2%'],['北欧2人掛けソファ','842','6.4%'],['リクライニングソファ','612','5.8%']],
+    note:'モダンコーナーソファが突出。在庫8点、補充を検討。' },
+];
+function streamText(elId, text, done) {
+  let i = 0;
+  (function t() {
+    const el = document.getElementById(elId); if (!el) return;
+    const v = text.slice(0, i);
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') el.value = v; else el.textContent = v;
+    if (i++ < text.length) setTimeout(t, 13); else if (done) done();
+  })();
+}
 function runAnalyticsQuery() {
   const inp = document.querySelector('#view-analytics input.input');
-  const q = (inp && inp.value.trim()) || '今週ソファカテゴリで一番閲覧された商品 TOP 3';
+  const qstr = (inp && inp.value.trim()) || '';
+  const s = QUERY_SETS.find(x => x.kw.some(k => qstr.includes(k))) || QUERY_SETS[QUERY_SETS.length - 1];
   openModal({
-    title: 'AI 分析結果',
-    subtitle: q,
-    size: 'lg',
+    title: 'AI 分析結果', subtitle: qstr || s.q, size: 'lg',
     icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--ai-bg);color:var(--ai);display:grid;place-items:center">${Icon('sparkles',18)}</div>`,
     body: `
-      <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">生成された SQL</div>
-      <div style="background:#0f1018;color:#e8e9f1;border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.7;margin-bottom:18px">
-        <span style="color:#a594ff">SELECT</span> product_name, <span style="color:#06d4c4">SUM</span>(views) <span style="color:#a594ff">AS</span> total<br>
-        <span style="color:#a594ff">FROM</span> access_logs<br>
-        <span style="color:#a594ff">WHERE</span> category = 'ソファ'<br>
-        &nbsp;&nbsp;<span style="color:#a594ff">AND</span> date &gt;= '2026-05-14'<br>
-        <span style="color:#a594ff">GROUP BY</span> product_name<br>
-        <span style="color:#a594ff">ORDER BY</span> total <span style="color:#a594ff">DESC</span> <span style="color:#a594ff">LIMIT</span> 3;
-      </div>
-      <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">結果</div>
-      <table class="tbl" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
-        <thead><tr><th>商品名</th><th style="text-align:right">閲覧数</th><th style="text-align:right">CVR</th></tr></thead>
-        <tbody>
-          <tr><td>モダンコーナーソファ ベージュ</td><td style="text-align:right;font-weight:600">1,240</td><td style="text-align:right">8.2%</td></tr>
-          <tr><td>北欧 2 人掛けソファ</td><td style="text-align:right;font-weight:600">842</td><td style="text-align:right">6.4%</td></tr>
-          <tr><td>リクライニングソファ</td><td style="text-align:right;font-weight:600">612</td><td style="text-align:right">5.8%</td></tr>
-        </tbody>
-      </table>
-      <div style="margin-top:14px;font-size:11.5px;color:var(--text-mute)">実行時間: 1.4 秒 ・ スキャン: 24,182 行 ・ コスト: ¥4.2</div>
-    `,
+      <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">AI が生成した SQL</div>
+      <div id="__sqlbox" style="background:#0f1018;color:#e8e9f1;border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.7;margin-bottom:18px;min-height:92px;white-space:pre-wrap"></div>
+      <div id="__qres" style="opacity:0;transition:opacity .45s">
+        <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">結果</div>
+        <table class="tbl" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <thead><tr>${s.cols.map((c, i) => `<th style="text-align:${i ? 'right' : 'left'}">${c}</th>`).join('')}</tr></thead>
+          <tbody>${s.rows.map(r => `<tr>${r.map((v, i) => `<td style="text-align:${i ? 'right' : 'left'};${i ? 'font-weight:600' : ''}">${v}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+        <div style="margin-top:12px;background:var(--ai-bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-soft);display:flex;gap:8px"><span style="color:var(--ai)">${Icon('sparkles',13)}</span><span>${s.note}</span></div>
+        <div style="margin-top:10px;font-size:11.5px;color:var(--text-mute)">実行時間: 1.4 秒 ・ スキャン: 24,182 行 ・ コスト: ¥4.2</div>
+      </div>`,
     footer: `
       <button class="btn ghost" onclick="closeModal()">閉じる</button>
       <button class="btn" onclick="toast('CSV をダウンロード中')">${Icon('download',13)} CSV</button>
       <button class="btn primary" onclick="toast('ダッシュボードに追加');closeModal()">ダッシュボードに追加</button>
     `,
   });
+  streamText('__sqlbox', s.sql, () => { const r = document.getElementById('__qres'); if (r) r.style.opacity = '1'; });
 }
 
 /* ===== Bulk / mass actions ===== */
@@ -476,9 +499,9 @@ function openApprovalCompose(ref) {
       <div style="font-size:12.5px;color:var(--text-soft);background:#fafbfd;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">${a.reason}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600">AI 生成ドラフト（編集可）</span>
-        <button class="btn ai sm" onclick="toast('AI が文面を再生成中 ...')">${Icon('sparkles',12)} 再生成</button>
+        <button class="btn ai sm" onclick="streamText('__approval_draft', window.__lastDraft||'')">${Icon('sparkles',12)} 再生成</button>
       </div>
-      <textarea class="input" id="__approval_draft" rows="7" style="width:100%;padding:12px;resize:vertical;line-height:1.7;font-size:13px">${a.draft || ''}</textarea>
+      <textarea class="input" id="__approval_draft" rows="7" style="width:100%;padding:12px;resize:vertical;line-height:1.7;font-size:13px"></textarea>
       ${suppressNote}
     `,
     footer: `
@@ -487,6 +510,8 @@ function openApprovalCompose(ref) {
       <button class="btn primary" onclick="${isIdx ? `resolveApproval(${ref},true);closeModal()` : `toast('承認して送信しました');closeModal()`}">${Icon('check',13)} 承認して送信</button>
     `,
   });
+  window.__lastDraft = a.draft || '';
+  streamText('__approval_draft', window.__lastDraft);   // AIが文面を生成する演出（4b）
 }
 
 /* 在庫→発注→ワークフロー導線 (D22): 商品から発注書ドラフトを起票 */
