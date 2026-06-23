@@ -387,6 +387,26 @@
         </div>
       </section>
 
+      <!-- ============ CALENDAR ============ -->
+      <section class="page" id="view-calendar">
+        <div class="page-head">
+          <div>
+            <div class="page-title">配信カレンダー</div>
+            <div class="page-sub" id="cal-sub">予約済みのキャンペーン・ワークフロー配信</div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:center">
+            <div style="display:flex;gap:12px;font-size:11.5px;color:var(--text-mute)">
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--accent)"></span>キャンペーン</span>
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--ai)"></span>ワークフロー</span>
+            </div>
+            <button class="btn primary" onclick="openNewCampaignModal()">＋ 配信を予約</button>
+          </div>
+        </div>
+        <div class="card pad">
+          <div id="cal-grid"></div>
+        </div>
+      </section>
+
       <!-- ============ ORDERS ============ -->
       <section class="page" id="view-orders">
         <div class="page-head">

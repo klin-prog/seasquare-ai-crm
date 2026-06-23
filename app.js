@@ -170,6 +170,7 @@ const PAGES = {
   leads:      { label: '見込客（リード）', group: '顧客' },
   campaigns:  { label: 'キャンペーン', group: '顧客' },
   workflows:  { label: 'ワークフロー', group: '顧客' },
+  calendar:   { label: '配信カレンダー', group: '顧客' },
   // Products
   orders:     { label: '受注管理', group: '商品' },
   inventory:  { label: '在庫・商品', group: '商品' },
@@ -208,7 +209,7 @@ function buildSidebar() {
   const openTasks = DATA.TASKS.filter(t => t.status === '未対応').length;
   const groups = {
     '今日':   [['dashboard','home'],['tasks','inbox', openTasks],['approvals','shield', DATA.APPROVALS.length, 'urgent'],['deals','deal']],
-    '顧客':   [['customers','users'],['leads','flame', DATA.LEADS.length, 'urgent'],['campaigns','mail'],['workflows','zap']],
+    '顧客':   [['customers','users'],['leads','flame', DATA.LEADS.length, 'urgent'],['campaigns','mail'],['workflows','zap'],['calendar','calendar']],
     '商品':   [['orders','box'],['inventory','store']],
     'AI':     [['insights','sparkles', DATA.INSIGHTS.length, 'ai'],['agent-log','terminal']],
     '分析':   [['reports','chart'],['analytics','db']],
@@ -686,6 +687,35 @@ function renderFunnelChart() {
   });
 }
 
+/* ===== 配信カレンダー（深掘り） ===== */
+function renderCalendar() {
+  const grid = $('#cal-grid'); if (!grid) return;
+  const base = new Date();
+  const y = base.getFullYear(), m = base.getMonth(), todayD = base.getDate();
+  const startDow = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  const byDay = {};
+  DATA.SCHEDULE.forEach(s => { (byDay[s.day] = byDay[s.day] || []).push(s); });
+  const dows = ['日', '月', '火', '水', '木', '金', '土'];
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push('<div class="cal-cell empty"></div>');
+  for (let d = 1; d <= days; d++) {
+    const chips = (byDay[d] || []).map(s => {
+      const onclick = s.type === 'campaign' ? `openCampaign('${s.name}')` : `nav('workflows')`;
+      return `<div class="cal-chip ${s.type === 'campaign' ? 'camp' : 'wf'}" title="${s.name} ・ ${s.ch} ・ 対象${s.reach.toLocaleString()}名" onclick="event.stopPropagation();${onclick}">${s.ch} ${s.name}</div>`;
+    }).join('');
+    cells.push(`<div class="cal-cell ${d === todayD ? 'today' : ''}"><div class="cal-date">${d}${d === todayD ? ' <span class="cal-today-tag">今日</span>' : ''}</div>${chips}</div>`);
+  }
+  const suppressed = DATA.CUSTOMERS.filter(isSuppressed).length;
+  grid.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:15px;font-weight:600">${y}年 ${m + 1}月</div>
+      <div style="font-size:11.5px;color:var(--text-mute)">予約 ${DATA.SCHEDULE.length} 件 ・ <span style="color:var(--danger)">送信抑制で除外 ${suppressed} 名</span></div>
+    </div>
+    <div class="cal-dows">${dows.map((d, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}</div>
+    <div class="cal-grid-inner">${cells.join('')}</div>`;
+}
+
 /* ===== Insights ===== */
 function renderInsights() {
   $('#insights-list').innerHTML = DATA.INSIGHTS.map((i,idx) => renderInsightCard(i, idx, idx===0)).join('');
@@ -909,6 +939,7 @@ renderOrders();
 renderInventory();
 renderCampaigns();
 renderWorkflows();
+renderCalendar();
 renderInsights();
 renderApprovals();
 renderAgentLog();

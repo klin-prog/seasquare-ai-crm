@@ -208,4 +208,16 @@ window.DATA = {
     open:  [38, 41, 44, 43, 47, 49, 48, 52],
     unsub: [0.9, 0.8, 1.1, 0.7, 0.6, 0.8, 0.5, 0.6],
   },
+
+  // 配信カレンダー — 当月の日付に配信を割当（type: campaign=一括 / workflow=トリガー駆動）
+  SCHEDULE: [
+    { day: 3,  name: '母の日リピート訴求',       ch: 'LINE', type: 'campaign', reach: 2318 },
+    { day: 8,  name: '休眠リエンゲージ（自動）',   ch: 'メール', type: 'workflow', reach: 480 },
+    { day: 12, name: 'ダイニング3点セット紹介',   ch: 'メール', type: 'campaign', reach: 1442 },
+    { day: 15, name: '高スコア客フォロー（自動）', ch: 'LINE', type: 'workflow', reach: 128 },
+    { day: 18, name: '夏のラグ特集',             ch: 'LINE', type: 'campaign', reach: 2180 },
+    { day: 22, name: 'カート放棄リカバリ（自動）', ch: 'LINE', type: 'workflow', reach: 64 },
+    { day: 25, name: '秋冬カーテン早期予約',       ch: 'LINE', type: 'campaign', reach: 1200 },
+    { day: 28, name: '新規会員10%OFF',           ch: 'メール', type: 'campaign', reach: 860 },
+  ],
 };
