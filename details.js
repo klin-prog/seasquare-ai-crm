@@ -124,7 +124,11 @@ function arPreviewHTML(p) {
     <div style="margin-bottom:14px">
       <div class="ar-room" id="ar-room">
         <div class="ar-floor" id="ar-floor"></div>
-        <div class="ar-item" id="ar-item">${Icon('box', 46)}</div>
+        <div class="ar-cube spin" id="ar-item">
+          <span class="ar-face fz"></span><span class="ar-face bz"></span>
+          <span class="ar-face rx"></span><span class="ar-face lx"></span>
+          <span class="ar-face ty"></span><span class="ar-face by"></span>
+        </div>
         <div class="ar-badges">
           ${has3D ? '<span class="badge b-accent">3D</span>' : ''}
           ${hasAR ? '<span class="badge b-info">AR</span>' : ''}
