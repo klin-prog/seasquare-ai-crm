@@ -41,20 +41,23 @@ function refreshGreeting() {
   const g = $('#dash-greeting'); if (g) g.textContent = `${greeting()}、${CONFIG.user.name.split(' ')[0]}さん`;
   const d = $('#dash-date');     if (d) d.textContent = `${jpDate()} ・ 今日のダッシュボード`;
 }
+const PERIODS = { '今月': [1, '今月', '月末'], '今週': [7 / 30, '今週', '週末'], '今日': [1 / 30, '今日', '本日'] };
 function renderKPIs() {
   const k = metricsView();
   const el = $('#kpis'); if (!el) return;
-  const pct = (k.achievement * 100).toFixed(1);
+  const [pf, plabel, elabel] = PERIODS[window.period || '今月'] || PERIODS['今月'];
+  const actual = Math.round(k.actual * pf), target = Math.round(k.target * pf), forecast = Math.round(k.forecast * pf);
+  const pct = (k.achievement * 100).toFixed(1);   // 比率は期間で不変（実績・目標が同率でスケール）
   el.innerHTML = `
     <div class="kpi">
-      <div class="kpi-label">今月EC売上</div>
-      <div class="kpi-value">${yen(k.actual)}</div>
+      <div class="kpi-label">${plabel}EC売上</div>
+      <div class="kpi-value">${yen(actual)}</div>
       <div class="kpi-delta up">${Icon('arrowUp', 12)} 前月比 +${k.momGrowth.toFixed(1)}%</div>
     </div>
     <div class="kpi featured">
-      <div class="kpi-label" style="color:rgba(255,255,255,.8)">月商目標 達成率</div>
+      <div class="kpi-label" style="color:rgba(255,255,255,.8)">${plabel}目標 達成率</div>
       <div class="kpi-value">${pct}%</div>
-      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">${yenM(k.actual)} / ${yenM(k.target)}</div>
+      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">${yenM(actual)} / ${yenM(target)}</div>
       <div class="progress"><div style="width:${pct}%"></div></div>
     </div>
     <div class="kpi">
@@ -63,11 +66,16 @@ function renderKPIs() {
       <div class="kpi-delta mute"><span class="badge b-ai">AI ${k.aiTasks}件</span> 手動 ${k.manualTasks}件</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">AI 予測 月末着地</div>
-      <div class="kpi-value">${yenM(k.forecast)}</div>
+      <div class="kpi-label">AI 予測 ${elabel}着地</div>
+      <div class="kpi-value">${yenM(forecast)}</div>
       <div class="kpi-delta mute">目標比 ${(k.projected * 100).toFixed(0)}%</div>
     </div>
   `;
+}
+function setPeriod(p, btn) {
+  window.period = p;
+  if (btn && btn.parentElement) btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+  renderKPIs();
 }
 
 /* ===== 更新 button — perturb live metrics ±数% (item 5) ===== */
@@ -280,7 +288,7 @@ function renderDashboard() {
 
   // Tasks
   $('#dash-tasks').innerHTML = DATA.TASKS.slice(0, 5).map(t => `
-    <div onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
+    <div onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
       <input type="checkbox" class="checkbox" onclick="event.stopPropagation()">
       <div style="flex:1">
         <div style="font-weight:500">${t.title}</div>
@@ -295,7 +303,7 @@ function renderDashboard() {
 
   // Hot leads
   $('#dash-leads').innerHTML = [...DATA.LEADS].sort(byScoreDesc).slice(0, 5).map(l => `
-    <div onclick="openLead(${l.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
+    <div onclick="openLead(${l.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
       <div style="flex:1">
         <div style="font-weight:500">${l.name} <span style="color:var(--text-mute);font-size:11px;margin-left:4px">${fsegBadge(leadFseg(l))}</span></div>
         <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${l.last}</div>
@@ -323,7 +331,7 @@ function paintStreamRows() {
                      `<span class="badge b-danger">エラー</span>`;
     const idx = r._idx !== undefined ? r._idx : 0;
     return `
-      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="openAgentLog(${idx})" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
+      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="openAgentLog(${idx})" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
         <div class="t">${r.time}</div>
         <div><span class="badge ${agentColor}">${r.agent}</span></div>
         <div class="msg">

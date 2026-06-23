@@ -26,7 +26,7 @@ function confirmDialog({title, body, confirmText='実行', cancelText='キャン
       <div style="font-size:14px;font-weight:600">${title}</div>
     </div>
     <div style="padding:18px 20px;font-size:13px;color:var(--text-soft);line-height:1.6">${body}</div>
-    <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:#fafbfd">
+    <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--surface-2)">
       <button class="btn" id="__cf_cancel">${cancelText}</button>
       <button class="btn ${kind}" id="__cf_ok">${confirmText}</button>
     </div>
@@ -63,7 +63,7 @@ const Actions = (btns) => `<div style="display:grid;grid-template-columns:repeat
 function scoreBreakdownHTML(acts, score) {
   const rows = scoreRows(acts);
   return `
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border-soft)">
         <span style="font-size:11.5px;color:var(--text-mute)">スコア = Σ 行動ウェイト</span>
         <span style="font-size:18px;font-weight:700;color:var(--accent-hi)">${score}</span>
@@ -183,7 +183,7 @@ function openCoordinate(id) {
             </div>
           </div>`).join('')}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:#fafbfd;border:1px solid var(--border);border-radius:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px">
         <div><span style="font-size:12px;color:var(--text-mute)">3点合計</span> <span style="text-decoration:line-through;color:var(--text-mute);margin-left:6px">${yen(total)}</span></div>
         <div style="font-size:20px;font-weight:700;color:var(--accent-hi)">${yen(setPrice)} <span style="font-size:11px;color:var(--success);font-weight:600;margin-left:4px">セット割10%</span></div>
       </div>`,
@@ -219,7 +219,7 @@ function openCustomer(id) {
     ${actionHistoryHTML(c.acts, c.id)}
     <div style="display:flex;gap:10px;margin-top:8px;font-size:12px;color:var(--text-mute)"><span class="cell-mono" style="min-width:74px">${c.last}</span><span>前回購入</span></div>
     ${SecLabel('配信ステータス（過剰配信の抑制）')}
-    <div style="background:${isSuppressed(c) ? 'var(--danger-bg)' : '#fafbfd'};border:1px solid ${isSuppressed(c) ? 'rgba(225,29,72,.22)' : 'var(--border)'};border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:8px">
+    <div style="background:${isSuppressed(c) ? 'var(--danger-bg)' : 'var(--surface-2)'};border:1px solid ${isSuppressed(c) ? 'rgba(225,29,72,.22)' : 'var(--border)'};border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">最終配信日</span><span>${c.dlv ? c.dlv.last : '—'}</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">今週の配信回数</span><span>${c.dlv ? c.dlv.week : 0} / 上限 ${c.dlv ? c.dlv.cap : 2} 回</span></div>
       ${isSuppressed(c)
@@ -257,7 +257,7 @@ function openLead(id) {
     ${SecLabel('AI スコア内訳（何で何点か）')}
     ${scoreBreakdownHTML(l.acts, l.score)}
     ${SecLabel('直近行動')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.6">${l.last}</div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.6">${l.last}</div>
     ${SecLabel('育成シナリオ（日数ベース）')}
     ${nurtureHTML()}
     ${SecLabel('AI 推奨アクション')}
@@ -270,7 +270,7 @@ function openLead(id) {
       </div>
     </div>
     ${SecLabel('生成メッセージプレビュー')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7;color:var(--text-soft)">
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7;color:var(--text-soft)">
       ${l.name} 様<br><br>
       いつもご利用ありがとうございます。先日ご覧いただいた商品の詳細をご案内します。<br>
       AR で実際にお部屋に置いたイメージをご確認いただけます。<br><br>
@@ -297,7 +297,7 @@ function openTask(id) {
       Field('期限', `${Icon('clock',12)} ${t.due}`) +
       Field('担当者', CONFIG.user.name)
     )}
-    ${t.customer!=='-' ? `${SecLabel('関連顧客')}<div style="background:#fafbfd;padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${t.customer[0]}</div><span style="font-weight:500">${t.customer}</span></div>`:''}
+    ${t.customer!=='-' ? `${SecLabel('関連顧客')}<div style="background:var(--surface-2);padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${t.customer[0]}</div><span style="font-weight:500">${t.customer}</span></div>`:''}
     ${t.source==='AI' ? `${SecLabel('AI 生成根拠')}<div style="background:var(--accent-bg);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:12px 14px;font-size:12.5px">${t.reason}</div>`:''}
     ${SecLabel('進行ステータス')}
     ${Timeline([
@@ -363,7 +363,7 @@ function openProduct(sku) {
       Tile('CVR', p.cvr)
     )}
     ${SecLabel('在庫レベル')}
-    <div style="background:#fafbfd;padding:12px 14px;border-radius:10px;border:1px solid var(--border)">
+    <div style="background:var(--surface-2);padding:12px 14px;border-radius:10px;border:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px;color:var(--text-mute)">現在の在庫</span><span style="font-weight:600;color:${stockColor}">${p.stock} 点</span></div>
       <div style="height:6px;background:var(--surface-2);border-radius:999px;overflow:hidden"><div style="height:100%;width:${stockPct}%;background:${stockColor};border-radius:999px"></div></div>
     </div>
@@ -390,7 +390,7 @@ function openCampaign(name) {
       Tile('CTR', c.ctr) +
       Tile('CV', c.cv)
     )}
-    ${isLive ? `${SecLabel('リアルタイム成果')}<div style="background:#fafbfd;padding:14px;border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--text-mute)">売上貢献</div><div style="font-size:22px;font-weight:700;color:var(--success);margin-top:2px">${c.rev}</div></div><span class="badge b-success"><span class="b-dot"></span>配信中</span></div>`:''}
+    ${isLive ? `${SecLabel('リアルタイム成果')}<div style="background:var(--surface-2);padding:14px;border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--text-mute)">売上貢献</div><div style="font-size:22px;font-weight:700;color:var(--success);margin-top:2px">${c.rev}</div></div><span class="badge b-success"><span class="b-dot"></span>配信中</span></div>`:''}
     ${SecLabel('配信設定')}
     <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px">
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">チャネル</span><span>${c.ch}</span></div>
@@ -399,7 +399,7 @@ function openCampaign(name) {
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-mute)">作成者</span><span>${c.by}</span></div>
     </div>
     ${SecLabel('メッセージプレビュー')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7;color:var(--text-soft)">
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7;color:var(--text-soft)">
       【${c.name}】<br>
       お客様にあわせて、AI が生成したパーソナライズメッセージを配信します。<br>
       <span style="color:var(--accent-hi)">▶ 商品を見る</span>
@@ -425,7 +425,7 @@ function openDeal(c, t, a, src) {
       <span class="badge b-warn">検討中</span>
     </div>
     ${SecLabel('顧客')}
-    <div style="background:#fafbfd;padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:12px">${c[0]}</div><div><div style="font-weight:500">${c}</div><div style="font-size:11px;color:var(--text-mute)">VIP セグメント</div></div></div>
+    <div style="background:var(--surface-2);padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:12px">${c[0]}</div><div><div style="font-weight:500">${c}</div><div style="font-size:11px;color:var(--text-mute)">VIP セグメント</div></div></div>
     ${Grid4(
       Tile('成約確度', probability+'%', 'var(--accent-hi)') +
       Tile('予測 GP', '¥'+Math.round(a*0.3/1000)+'K') +
@@ -467,7 +467,7 @@ function openInsight(idx) {
     ${SecLabel('予測効果')}
     <div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--text-mute)">インパクト</span><span style="font-size:18px;font-weight:700;color:var(--success)">${i.impact}</span></div>
     ${SecLabel('AI 根拠')}
-    <div style="font-size:12.5px;line-height:1.7;color:var(--text-soft);background:#fafbfd;padding:14px;border-radius:10px;border:1px solid var(--border)">
+    <div style="font-size:12.5px;line-height:1.7;color:var(--text-soft);background:var(--surface-2);padding:14px;border-radius:10px;border:1px solid var(--border)">
       • BigQuery 集計: 過去 30 日の購買・行動ログ<br>
       • 類似顧客群の購買確率モデル（精度 87%）<br>
       • セグメント別最適チャネルマッピング
@@ -492,9 +492,9 @@ function openApproval(idx) {
       Tile('起票', a.time)
     )}
     ${SecLabel('AI 根拠')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7">${a.reason}</div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7">${a.reason}</div>
     ${SecLabel('実行内容プレビュー')}
-    <div style="background:#fafbfd;border:1px dashed var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;color:var(--text-soft)">
+    <div style="background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;color:var(--text-soft)">
       action: <span style="color:var(--accent-hi)">${a.kind}</span><br>
       target: <span style="color:var(--ai)">${a.target}</span><br>
       impact: <span style="color:var(--success)">${a.impact}</span><br>
@@ -518,9 +518,9 @@ function openAgentLog(idx) {
     </div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent-hi);margin-bottom:14px">${l.tool}()</div>
     ${SecLabel('入力')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);word-break:break-all">${l.input}</div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);word-break:break-all">${l.input}</div>
     ${SecLabel('結果')}
-    <div style="background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:${l.status==='error'?'var(--danger)':'var(--text-soft)'};word-break:break-all">${l.result}</div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:${l.status==='error'?'var(--danger)':'var(--text-soft)'};word-break:break-all">${l.result}</div>
     ${Grid4(
       Tile('所要', l.ms+'ms') +
       Tile('トークン', l.tok) +
@@ -543,9 +543,9 @@ function openIntegration(name, data) {
     )}
     ${SecLabel('設定')}
     <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fafbfd;border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">エンドポイント</span><span class="cell-mono">api.${name.toLowerCase().replace(/\\s/g,'')}.com</span></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fafbfd;border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">API キー</span><span class="cell-mono">••••••••${Math.floor(Math.random()*9999)}</span></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fafbfd;border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">自動同期</span><span class="badge b-success">5 分ごと</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">エンドポイント</span><span class="cell-mono">api.${name.toLowerCase().replace(/\\s/g,'')}.com</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">API キー</span><span class="cell-mono">••••••••${Math.floor(Math.random()*9999)}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px"><span style="font-size:12.5px">自動同期</span><span class="badge b-success">5 分ごと</span></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="confirmDialog({title:'接続を切断',body:'${name} との連携を停止します。',confirmText:'切断',kind:'danger',onConfirm:()=>{toast('切断しました');closeDrawer()}})">切断</button>
@@ -573,7 +573,7 @@ function openUser(name, email, role) {
     ${SecLabel('AI 実行権限')}
     <div style="display:flex;flex-direction:column;gap:8px">
       ${['顧客データ読み取り','メール送付','LINE 送付','クーポン発行','発注書ドラフト'].map(p=>`
-        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fafbfd;border:1px solid var(--border);border-radius:10px;font-size:12.5px;cursor:pointer">
+        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;font-size:12.5px;cursor:pointer">
           <span>${p}</span>
           <input type="checkbox" class="checkbox" ${Math.random()>0.3?'checked':''}>
         </label>
@@ -619,6 +619,14 @@ function openReport(title) {
   const rep = REPORT_DATA[title];
   const summary = rep ? rep.summary : `今月の売上は ${yen(k.actual)} で前月比 +${k.momGrowth.toFixed(1)}%。VIP・リピート顧客の購買が牽引し、AI 接客経由の注文が全体の 58% を占めています。AI 予測では月末 ${yenM(k.forecast)} 着地、目標達成率 ${(k.projected*100).toFixed(0)}%（達成率 ${(k.achievement*100).toFixed(1)}%）。`;
   const metrics = rep ? rep.metrics : [['EC 売上',yenM(k.actual),'+'+k.momGrowth.toFixed(1)+'%','var(--success)'],['平均単価','¥41,200','+8.4%','var(--success)'],['CVR','4.8%','-0.3%','var(--danger)'],['AI 接客率','58%','+12%','var(--success)']];
+  const seriesMap = {
+    '商談 AI スコアリング分析': { label:'予測精度 (AUC)', data:[0.79,0.82,0.84,0.85,0.86,0.87] },
+    'キャンペーン効果分析':     { label:'平均CV率 (%)',  data:[3.6,4.1,4.4,4.8,5.0,5.2] },
+    'CV 経路分析':             { label:'AR経由CVR (%)', data:[8.1,9.4,10.2,11.0,11.8,12.4] },
+    '商品売れ筋・滞留':         { label:'トップ商品 回転', data:[1.9,2.0,2.1,2.2,2.3,2.4] },
+    'LTV コホート分析':        { label:'平均LTV (千円)', data:[121,138,150,162,175,186] },
+  };
+  const sc = seriesMap[title] || { label:'月商 (万円)', data:[520,610,580,640,684,720] };
   DRAWER.open(`レポート: ${title}`, `
     <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">2026 年 5 月度</div>
     ${Grid4(
@@ -632,17 +640,28 @@ function openReport(title) {
     ${SecLabel('主要指標')}
     <div style="display:flex;flex-direction:column;gap:8px">
       ${metrics.map(([l,v,d,c])=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fafbfd;border:1px solid var(--border);border-radius:10px;font-size:12.5px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;font-size:12.5px">
           <span>${l}</span>
           <div><span style="font-weight:600">${v}</span> <span style="color:${c};margin-left:8px;font-size:11.5px">${d}</span></div>
         </div>
       `).join('')}
     </div>
+    ${SecLabel('推移')}
+    <div style="height:160px"><canvas id="report-chart"></canvas></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="toast('PDF を出力')" style="justify-content:center">${Icon('download',13)} PDF</button>
       <button class="btn primary" onclick="toast('全画面で表示')" style="justify-content:center">詳細を表示</button>
     </div>
   `);
+  if (window.Chart) {
+    if (window.__reportChart) { try { window.__reportChart.destroy(); } catch (e) {} }
+    const cv = document.getElementById('report-chart');
+    if (cv) window.__reportChart = new Chart(cv, {
+      type: 'line',
+      data: { labels: ['12月','1月','2月','3月','4月','5月'], datasets: [{ label: sc.label, data: sc.data, borderColor: CONFIG.brand.primary, backgroundColor: _hexToRgba(CONFIG.brand.primary, .12), fill: true, tension: .35, borderWidth: 2, pointRadius: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#767c95', font: { size: 10 } }, grid: { color: 'rgba(20,21,42,.06)' } }, y: { ticks: { color: '#767c95', font: { size: 10 } }, grid: { color: 'rgba(20,21,42,.06)' } } } }
+    });
+  }
 }
 
 window.openCustomer = openCustomer;

@@ -459,7 +459,7 @@ function showInventoryAlert() {
       <div style="display:flex;flex-direction:column;gap:8px">
         ${DATA.INVENTORY.filter(p => p.advice === '発注推奨').map(p => `
           <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface-2);border-radius:8px;cursor:pointer" onclick="closeModal();openProduct('${p.sku}')">
-            <div style="width:36px;height:36px;border-radius:8px;background:#fff;border:1px solid var(--border);display:grid;place-items:center;color:var(--text-mute)">${Icon('box',16)}</div>
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--text-mute)">${Icon('box',16)}</div>
             <div style="flex:1">
               <div style="font-size:13px;font-weight:500">${p.name}</div>
               <div style="font-size:11px;color:var(--text-mute);font-family:monospace">${p.sku}</div>
@@ -496,7 +496,7 @@ function openApprovalCompose(ref) {
         <span class="badge ${a.risk==='高'?'b-danger':a.risk==='中'?'b-warn':'b-neutral'}">リスク: ${a.risk}</span>
       </div>
       <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:6px">AI 根拠</div>
-      <div style="font-size:12.5px;color:var(--text-soft);background:#fafbfd;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">${a.reason}</div>
+      <div style="font-size:12.5px;color:var(--text-soft);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">${a.reason}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600">AI 生成ドラフト（編集可）</span>
         <button class="btn ai sm" onclick="streamText('__approval_draft', window.__lastDraft||'')">${Icon('sparkles',12)} 再生成</button>

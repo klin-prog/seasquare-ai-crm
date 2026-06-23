@@ -43,6 +43,8 @@ function _hexToRgba(hex, a) {
 /* ブランド identity とテーマを DOM に反映（boot 時に1回呼ぶ） */
 function applyBranding() {
   const b = CONFIG.brand, u = CONFIG.user, r = document.documentElement.style;
+  // 保存済みのダーク/ライト設定を適用（4d）
+  try { if (localStorage.getItem('seasquare_theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
 
   // テーマカラー（item 3）— CONFIG.brand.primary/secondary を変えると全体が再スキン
   r.setProperty('--brand-primary', b.primary);
@@ -70,4 +72,15 @@ function applyBranding() {
 }
 
 window.applyBranding = applyBranding;
+
+/* ダーク/ライト切替（4d） */
+function toggleTheme() {
+  const dark = document.documentElement.dataset.theme !== 'dark';
+  if (dark) document.documentElement.dataset.theme = 'dark';
+  else document.documentElement.removeAttribute('data-theme');
+  try { localStorage.setItem('seasquare_theme', dark ? 'dark' : 'light'); } catch (e) {}
+  if (window.toast) toast(dark ? 'ダークモード' : 'ライトモード');
+}
+window.toggleTheme = toggleTheme;
+
 applyBranding();
