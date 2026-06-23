@@ -415,39 +415,45 @@ function openCampaign(name) {
   `);
 }
 
-function openDeal(c, t, a, src) {
-  const probability = src==='AI' ? 72 : 55;
+function openDeal(c, t, a, src, stageKey) {
+  const order = ['new', 'qualified', 'proposal', 'won'];
+  const labels = { new: '新規', qualified: '検討中', proposal: '提案中', won: '受注' };
+  const dates = ['5/15', '5/18', '5/22', '5/28'];
+  const si = Math.max(0, order.indexOf(stageKey || 'qualified'));
+  const probability = [55, 72, 84, 100][si];
+  const next = {
+    new:       { h: '初回ヒアリング → 検討中へ',         p: 'AR体験リンクを送付して関心度を測定。反応で確度を判定します。' },
+    qualified: { h: '3D シミュレーション動画を送付',     p: '類似 VIP 顧客では動画送付後の成約率が +34%。提案中へ進めます。' },
+    proposal:  { h: '見積＋設置事例を提示しクロージング', p: '設置イメージと納期を提示し、クロージング面談を設定して受注へ。' },
+    won:       { h: '受注済み — アフターフォロー手配',   p: '設置日程とアフターサポートを自動で手配します。' },
+  }[order[si]];
+  const stBadge = si >= 3 ? 'b-success' : si >= 2 ? 'b-info' : si >= 1 ? 'b-warn' : 'b-neutral';
+  const safeT = t.replace(/'/g, '');
   DRAWER.open(`商談`, `
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${yen(a)}</div>
     <div style="font-size:13px;color:var(--text-soft);margin-bottom:14px">${t}</div>
     <div style="display:flex;gap:8px;margin-bottom:14px">
       <span class="badge ${src==='AI'?'b-ai':'b-neutral'}">${src==='AI'?'AI 生成':'手動'}</span>
-      <span class="badge b-warn">検討中</span>
+      <span class="badge ${stBadge}">${labels[order[si]]}</span>
     </div>
     ${SecLabel('顧客')}
-    <div style="background:var(--surface-2);padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:12px">${c[0]}</div><div><div style="font-weight:500">${c}</div><div style="font-size:11px;color:var(--text-mute)">VIP セグメント</div></div></div>
+    <div style="background:var(--surface-2);padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:12px">${c[0]}</div><div><div style="font-weight:500">${c}</div><div style="font-size:11px;color:var(--text-mute)">顧客</div></div></div>
     ${Grid4(
       Tile('成約確度', probability+'%', 'var(--accent-hi)') +
       Tile('予測 GP', '¥'+Math.round(a*0.3/1000)+'K') +
-      Tile('クローズ', '5/28') +
+      Tile('ステージ', labels[order[si]]) +
       Tile('担当', CONFIG.user.name)
     )}
-    ${SecLabel('進行ステップ')}
-    ${Timeline([
-      {label:'リード化', time:'5/15', done:true},
-      {label:'検討中', time:'5/18', active:true},
-      {label:'提案中'},
-      {label:'受注'},
-    ])}
-    ${SecLabel('AI ネクストステップ')}
+    ${SecLabel('ステージ履歴')}
+    ${Timeline(order.map((k, i) => ({ label: labels[k] + (i < si ? ' ・ 完了' : i === si ? ' ・ 進行中' : ''), time: i <= si ? dates[i] : null, done: i < si, active: i === si })))}
+    ${SecLabel('AI 次の一手')}
     <div class="insight" style="padding:14px">
       <div class="insight-ic">${Icon('sparkles',16)}</div>
-      <div>
-        <h4 style="font-size:13px">3D シミュレーション動画を送付</h4>
-        <p style="font-size:12px">類似 VIP 顧客の動画送付後の成約率は +34%。</p>
-      </div>
+      <div><h4 style="font-size:13px">${next.h}</h4><p style="font-size:12px">${next.p}</p></div>
     </div>
-    <button class="btn primary lg" style="width:100%;justify-content:center;margin-top:14px" onclick="toast('AI ネクストステップを実行')">アクションを実行</button>
+    ${si < 3
+      ? `<button class="btn primary lg" style="width:100%;justify-content:center;margin-top:14px" onclick="advanceDeal('${c}','${safeT}','${order[si]}')">${Icon('arrowUp',13)} 次ステージ「${labels[order[si + 1]]}」へ進める</button>`
+      : `<div style="margin-top:14px;padding:12px;background:var(--success-bg);border:1px solid rgba(22,163,74,.2);border-radius:10px;color:var(--success);font-size:12.5px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">${Icon('check',13)} 受注完了 — アフターフォロー手配済み</div>`}
   `);
 }
 

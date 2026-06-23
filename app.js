@@ -94,8 +94,7 @@ function updateRevenueChart() {
   revChart.update();
 }
 function pushStreamRow() {
-  const s = STREAM_SAMPLES[Math.floor(Math.random() * STREAM_SAMPLES.length)];
-  streamRows = [{ ...s, time: nowTime(), new: true }, ...streamRows.slice(0, 11)].map((r, i) => ({ ...r, new: i === 0 }));
+  streamRows = [{ ...genStreamRow(), time: nowTime(), new: true }, ...streamRows.slice(0, 11)].map((r, i) => ({ ...r, new: i === 0 }));
   paintStreamRows();
 }
 
@@ -321,7 +320,7 @@ let streamTimer = null;
 function paintStreamRows() {
   if (!streamRows.length) {
     const t0 = Date.now();
-    streamRows = DATA.AGENT_LOG.slice(0, 8).map((r, i) => ({ ...r, time: clockStr(new Date(t0 - i * 78000)), new: false, _idx: i }));
+    streamRows = Array.from({ length: 8 }, (_, i) => ({ ...genStreamRow(), time: clockStr(new Date(t0 - i * 78000)), new: false }));
   }
   const sl = $('#stream-list');
   if (!sl) return;
@@ -330,9 +329,11 @@ function paintStreamRows() {
     const statusIc = r.status === 'success' ? `<span class="badge b-success">${Icon('check',10)}</span>` :
                      r.status === 'pending' ? `<span class="badge b-warn">承認待</span>` :
                      `<span class="badge b-danger">エラー</span>`;
-    const idx = r._idx !== undefined ? r._idx : 0;
+    const click = r.ref
+      ? (r.ref.t === 'customer' ? `openCustomer('${r.ref.id}')` : r.ref.t === 'product' ? `openProduct('${r.ref.id}')` : `openLead(${r.ref.id})`)
+      : `openAgentLog(0)`;
     return `
-      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="openAgentLog(${idx})" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="${click}" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
         <div class="t">${r.time}</div>
         <div><span class="badge ${agentColor}">${r.agent}</span></div>
         <div class="msg">
@@ -347,14 +348,22 @@ function paintStreamRows() {
   }).join('');
 }
 
-const STREAM_SAMPLES = [
-  {agent:'接客AI', tool:'search_products', input:'category=ラグ', result:'5件', ms:295, tok:402, status:'success'},
-  {agent:'接客AI', tool:'ar_view',         input:'sku=SOFA-001 部屋に試し置き', result:'AR起動', ms:210, tok:180, status:'success'},
-  {agent:'営業AI', tool:'send_line',       input:'佐藤 美咲', result:'承認待ち', ms:88, tok:240, status:'pending'},
-  {agent:'接客AI', tool:'get_customer',    input:'cid=4', result:'山本 葵', ms:118, tok:312, status:'success'},
-  {agent:'在庫AI', tool:'bigquery_sql',    input:'velocity 7d', result:'6 rows', ms:1820, tok:520, status:'success'},
-  {agent:'営業AI', tool:'create_task',     input:'AR体験リンク送付', result:'TASK-2345 作成', ms:142, tok:380, status:'success'},
-];
+// 実データ(実顧客/商品/リード)を参照するログ行を生成（クリックで該当レコードへ）
+function genStreamRow() {
+  const cust = DATA.CUSTOMERS[Math.floor(Math.random() * DATA.CUSTOMERS.length)];
+  const prod = DATA.INVENTORY[Math.floor(Math.random() * DATA.INVENTORY.length)];
+  const lead = DATA.LEADS[Math.floor(Math.random() * DATA.LEADS.length)];
+  const tpl = [
+    () => ({ agent:'接客AI', tool:'get_customer',    input:`id=${cust.id}`,                 result:cust.name,             ms:118, tok:312, status:'success', ref:{ t:'customer', id:cust.id } }),
+    () => ({ agent:'接客AI', tool:'search_products', input:`category=${prod.cat}`,           result:prod.name,             ms:295, tok:402, status:'success', ref:{ t:'product', id:prod.sku } }),
+    () => ({ agent:'接客AI', tool:'ar_view',         input:`sku=${prod.sku}`,                result:'AR起動',              ms:210, tok:180, status:'success', ref:{ t:'product', id:prod.sku } }),
+    () => ({ agent:'営業AI', tool:'send_line',       input:cust.name,                        result:'承認待ち',            ms:88,  tok:240, status:'pending', ref:{ t:'customer', id:cust.id } }),
+    () => ({ agent:'営業AI', tool:'create_task',     input:`${lead.name}へ${lead.action}`,   result:'TASK 作成',           ms:142, tok:380, status:'success', ref:{ t:'lead', id:lead.id } }),
+    () => ({ agent:'分析AI', tool:'score_update',    input:`lead=${lead.name}`,              result:`score=${lead.score}`, ms:240, tok:300, status:'success', ref:{ t:'lead', id:lead.id } }),
+    () => ({ agent:'在庫AI', tool:'bigquery_sql',    input:`velocity sku=${prod.sku}`,       result:`${2 + Math.floor(Math.random() * 8)} rows`, ms:1820, tok:520, status:'success' }),
+  ];
+  return tpl[Math.floor(Math.random() * tpl.length)]();
+}
 function startAgentSimulation() {
   stopAgentSimulation();
   streamTimer = setInterval(pushStreamRow, 3200);
@@ -485,7 +494,7 @@ function renderDeals() {
         <span style="color:var(--text-soft);text-transform:none;font-size:11px">${colSum}</span>
       </h4>
       ${c.items.map((d,i) => `
-        <div class="kanban-card" draggable="true" ondragstart="dealDragStart(event,'${c.key}',${i})" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}')">
+        <div class="kanban-card" draggable="true" ondragstart="dealDragStart(event,'${c.key}',${i})" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}','${c.key}')">
           <div class="who">${d.c}</div>
           <div class="topic">${d.t}</div>
           <div class="row">
@@ -511,6 +520,22 @@ function dealDrop(e, toKey) {
   to.items.push(item);
   renderDeals(); saveState();
   toast(`${item.c}「${item.t}」を「${to.title}」へ移動`);
+}
+/* 商談を次ステージへ進める（詳細フロー・状態保存） */
+function advanceDeal(c, t, fromKey) {
+  const order = ['new', 'qualified', 'proposal', 'won'];
+  const fi = order.indexOf(fromKey);
+  if (fi < 0 || fi >= order.length - 1) return;
+  const from = DATA.DEALS_BOARD.find(col => col.key === fromKey);
+  const to = DATA.DEALS_BOARD.find(col => col.key === order[fi + 1]);
+  if (!from || !to) return;
+  const idx = from.items.findIndex(d => d.c === c && d.t === t);
+  if (idx < 0) return;
+  const item = from.items.splice(idx, 1)[0];
+  to.items.push(item);
+  saveState(); renderDeals();
+  toast(`${c}「${t}」を「${to.title}」へ進めました`);
+  if (window.openDeal) openDeal(item.c, item.t, item.a, item.src, to.key);
 }
 
 /* ===== Tasks ===== */
