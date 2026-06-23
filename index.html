@@ -773,6 +773,25 @@
   <div class="drawer-body" id="drawer-body"></div>
 </div>
 
+<!-- AI Assistant (floating) -->
+<button id="ai-fab" onclick="toggleAIChat()" title="AI アシスタント">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 14l.7 2L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-1z"/></svg>
+</button>
+<div id="ai-chat">
+  <div class="ai-chat-head">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="ai-chat-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg></div>
+      <div><div style="font-size:13px;font-weight:600">AI アシスタント</div><div style="font-size:10.5px;color:var(--text-mute)">データに何でも質問</div></div>
+    </div>
+    <button class="icon-btn" onclick="toggleAIChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg></button>
+  </div>
+  <div class="ai-chat-body" id="ai-chat-body"></div>
+  <div class="ai-chat-input">
+    <input id="ai-chat-text" placeholder="例: 今月の売上は？" onkeydown="if(event.key==='Enter')aiChatSend()">
+    <button class="btn primary sm" onclick="aiChatSend()">送信</button>
+  </div>
+</div>
+
 <script src="config.js"></script>
 <script src="data.js"></script>
 <script src="icons.js"></script>

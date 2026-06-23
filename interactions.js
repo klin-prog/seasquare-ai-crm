@@ -102,40 +102,50 @@ function openNotifications() {
   `, 440);
 }
 
+function searchItemHTML(r) {
+  return `<button class="search-item" onclick="closeModal();${r.click}">
+    <span style="color:var(--text-mute)">${Icon(r.ic, 14)}</span>
+    <span style="flex:1;text-align:left"><div style="font-size:13px;font-weight:500">${r.t}</div><div style="font-size:11px;color:var(--text-mute)">${r.sub}</div></span>
+    <span style="color:var(--text-mute);font-size:11px">⏎</span>
+  </button>`;
+}
+function quickAccessHTML() {
+  const items = [
+    { ic:'users',   t:'中村 健太郎', sub:'顧客 / VIP / LTV ¥1,240,000', click:`openCustomer('CST-008')` },
+    { ic:'box',     t:'モダンコーナーソファ ベージュ', sub:'商品 / SOFA-001 / ¥189,000', click:`openProduct('SOFA-001')` },
+    { ic:'package', t:'ORD-26052001', sub:'注文 / 佐藤 美咲 / ¥189,000', click:`openOrder('ORD-26052001')` },
+    { ic:'mail',    t:'母の日リピート訴求', sub:'キャンペーン / 配信中', click:`openCampaign('母の日リピート訴求')` },
+  ];
+  return `<div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-weight:600">クイックアクセス</div>
+    <div style="display:flex;flex-direction:column;gap:2px">${items.map(searchItemHTML).join('')}</div>`;
+}
+function searchPalette(q) {
+  const box = document.getElementById('__search_results'); if (!box) return;
+  q = (q || '').trim().toLowerCase();
+  if (!q) { box.innerHTML = quickAccessHTML(); return; }
+  const res = [];
+  DATA.CUSTOMERS.forEach(c => { if ((c.name + c.id).toLowerCase().includes(q)) res.push({ ic:'users', t:c.name, sub:`顧客 / ${c.fseg} / LTV ${yen(c.ltv)}`, click:`openCustomer('${c.id}')` }); });
+  DATA.LEADS.forEach(l => { if (l.name.toLowerCase().includes(q)) res.push({ ic:'flame', t:l.name, sub:`リード / スコア ${l.score}`, click:`openLead(${l.id})` }); });
+  DATA.INVENTORY.forEach(p => { if ((p.name + p.sku).toLowerCase().includes(q)) res.push({ ic:'box', t:p.name, sub:`商品 / ${p.sku} / ${yen(p.price)}`, click:`openProduct('${p.sku}')` }); });
+  DATA.ORDERS.forEach(o => { if ((o.no + o.customer + o.item).toLowerCase().includes(q)) res.push({ ic:'package', t:o.no, sub:`注文 / ${o.customer} / ${yen(o.amt)}`, click:`openOrder('${o.no}')` }); });
+  DATA.CAMPAIGNS.forEach(c => { if (c.name.toLowerCase().includes(q)) res.push({ ic:'mail', t:c.name, sub:`キャンペーン / ${c.status}`, click:`openCampaign('${c.name}')` }); });
+  box.innerHTML = res.length
+    ? `<div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-weight:600">${res.length} 件</div><div style="display:flex;flex-direction:column;gap:2px">${res.slice(0, 12).map(searchItemHTML).join('')}</div>`
+    : `<div style="padding:24px;text-align:center;color:var(--text-mute);font-size:12.5px">「${q}」に一致する結果がありません</div>`;
+}
 function openSearchPalette() {
   openModal({
     title: 'グローバル検索',
     size: 'lg',
     body: `
       <div style="position:relative;margin-bottom:14px">
-        <input class="input" placeholder="顧客・商品・商談・タスクを検索 ..." style="width:100%;height:40px;padding-left:36px;font-size:13px" autofocus>
+        <input id="__search_input" class="input" placeholder="顧客・商品・注文・商談・キャンペーンを検索 ..." style="width:100%;height:40px;padding-left:36px;font-size:13px" autofocus oninput="searchPalette(this.value)">
         <span style="position:absolute;left:12px;top:12px;color:var(--text-mute);pointer-events:none">${Icon('search',14)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-weight:600">クイックアクセス</div>
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <button class="search-item" onclick="closeModal();openCustomer('CST-008')">
-          <span style="color:var(--text-mute)">${Icon('users',14)}</span>
-          <span style="flex:1;text-align:left"><div style="font-size:13px;font-weight:500">中村 健太郎</div><div style="font-size:11px;color:var(--text-mute)">顧客 / VIP / LTV ¥1,240,000</div></span>
-          <span style="color:var(--text-mute);font-size:11px">⏎</span>
-        </button>
-        <button class="search-item" onclick="closeModal();openProduct('SOFA-001')">
-          <span style="color:var(--text-mute)">${Icon('box',14)}</span>
-          <span style="flex:1;text-align:left"><div style="font-size:13px;font-weight:500">モダンコーナーソファ ベージュ</div><div style="font-size:11px;color:var(--text-mute)">商品 / SOFA-001 / ¥189,000</div></span>
-          <span style="color:var(--text-mute);font-size:11px">⏎</span>
-        </button>
-        <button class="search-item" onclick="closeModal();openOrder('ORD-26052001')">
-          <span style="color:var(--text-mute)">${Icon('package',14)}</span>
-          <span style="flex:1;text-align:left"><div style="font-size:13px;font-weight:500">ORD-26052001</div><div style="font-size:11px;color:var(--text-mute)">注文 / 佐藤 美咲 / ¥189,000</div></span>
-          <span style="color:var(--text-mute);font-size:11px">⏎</span>
-        </button>
-        <button class="search-item" onclick="closeModal();openCampaign('母の日リピート訴求')">
-          <span style="color:var(--text-mute)">${Icon('mail',14)}</span>
-          <span style="flex:1;text-align:left"><div style="font-size:13px;font-weight:500">母の日リピート訴求</div><div style="font-size:11px;color:var(--text-mute)">キャンペーン / 配信中</div></span>
-          <span style="color:var(--text-mute);font-size:11px">⏎</span>
-        </button>
-      </div>
+      <div id="__search_results"></div>
     `,
   });
+  searchPalette('');
 }
 
 /* ===== New-item modals ===== */
@@ -541,8 +551,65 @@ function filterStream(value) {
   toast(value === '全エージェント' ? 'フィルター解除' : `${value} のみ表示中`);
 }
 
+/* ===== AI チャットアシスタント（浮動） ===== */
+function toggleAIChat() {
+  const el = document.getElementById('ai-chat'); if (!el) return;
+  el.classList.toggle('open');
+  if (el.classList.contains('open')) {
+    const body = document.getElementById('ai-chat-body');
+    if (body && !body.dataset.init) {
+      body.dataset.init = '1';
+      aiPush('bot', `こんにちは、${CONFIG.user.name.split(' ')[0]}さん。売上・在庫・顧客・承認について何でも聞いてください。`);
+      aiSuggest();
+    }
+    const t = document.getElementById('ai-chat-text'); if (t) t.focus();
+  }
+}
+function aiPush(who, html) {
+  const body = document.getElementById('ai-chat-body'); if (!body) return;
+  const d = document.createElement('div'); d.className = 'ai-msg ' + who; d.innerHTML = html;
+  body.appendChild(d); body.scrollTop = body.scrollHeight;
+}
+function aiSuggest() {
+  const body = document.getElementById('ai-chat-body'); if (!body) return;
+  const d = document.createElement('div'); d.className = 'ai-chips';
+  d.innerHTML = ['今月の売上は？', '在庫が少ない商品は？', '休眠顧客は？', '承認待ちは？'].map(c => `<button class="ai-chip" onclick="aiAsk('${c}')">${c}</button>`).join('');
+  body.appendChild(d); body.scrollTop = body.scrollHeight;
+}
+function aiAsk(q) { const t = document.getElementById('ai-chat-text'); if (t) t.value = q; aiChatSend(); }
+function aiChatSend() {
+  const t = document.getElementById('ai-chat-text'); if (!t) return;
+  const q = t.value.trim(); if (!q) return;
+  aiPush('user', escapeHtml(q)); t.value = '';
+  setTimeout(() => aiPush('bot', aiReply(q)), 350);
+}
+function aiReply(q) {
+  const m = window.getMetrics ? getMetrics() : null;
+  const chip = (label, fn) => `<div class="ai-chips" style="margin-top:8px"><button class="ai-chip" onclick="${fn}">${label}</button></div>`;
+  if (/売上|達成|目標|予測|着地|業績/.test(q) && m)
+    return `今月のEC売上は <b>${yen(m.actual)}</b>、月商目標 ${yen(m.target)} に対し達成率 <b>${(m.achievement * 100).toFixed(1)}%</b>。AI予測の月末着地は <b>${yen(m.forecast)}</b>（目標比 ${(m.projected * 100).toFixed(0)}%）です。` + chip('ダッシュボードを見る', `toggleAIChat();nav('dashboard')`);
+  if (/在庫|発注|補充|切迫/.test(q)) {
+    const low = DATA.INVENTORY.filter(p => p.advice === '発注推奨');
+    return `発注推奨は <b>${low.length} 件</b>です:<br>${low.map(p => `・${p.name}（残 ${p.stock} 点）`).join('<br>')}` + chip('在庫・商品を見る', `toggleAIChat();nav('inventory')`);
+  }
+  if (/休眠|離脱|チャーン|リエンゲージ/.test(q)) {
+    const ch = DATA.CUSTOMERS.filter(c => /離脱/.test(c.fseg));
+    return `離脱リスク・離脱(1年+)の顧客は <b>${ch.length} 名</b>。リエンゲージ・キャンペーンの対象候補です。` + chip('顧客一覧で確認', `toggleAIChat();nav('customers')`);
+  }
+  if (/承認|approve/i.test(q))
+    return `現在 <b>${DATA.APPROVALS.length} 件</b> の AI 提案が承認待ちです。` + chip('承認待ちを見る', `toggleAIChat();nav('approvals')`);
+  if (/リード|見込|スコア|ホット/.test(q)) {
+    const top = [...DATA.LEADS].sort((a, b) => b.score - a.score)[0];
+    return `最もホットなリードは <b>${top.name}</b>（スコア ${top.score}）。AI推奨アクション: ${top.action}。` + chip('リードを見る', `toggleAIChat();nav('leads')`);
+  }
+  if (/ソファ|人気|閲覧|売れ筋/.test(q))
+    return `直近の閲覧トップはソファの「モダンコーナーソファ」（閲覧 1,240 ・ CVR 8.2%）です。` + chip('BigQueryで分析', `toggleAIChat();nav('analytics')`);
+  return `売上・在庫・休眠顧客・承認待ち・リード などについてお答えできます。例:「今月の売上は？」「在庫が少ない商品は？」`;
+}
+
 /* Expose globals */
 Object.assign(window, {
+  toggleAIChat, aiChatSend, aiAsk, searchPalette,
   openSettings, openNotifications, openSearchPalette,
   openNewTaskModal, openNewCustomerModal, openNewDealModal,
   openNewCampaignModal, openNewProductModal, openNewUserModal,
