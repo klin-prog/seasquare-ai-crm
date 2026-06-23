@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>AI×CRM 管理コンソール</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  body { font-family: "Hiragino Kaku Gothic ProN","ヒラギノ角ゴ ProN W3", Meiryo, "Segoe UI", sans-serif; }
+  .sidebar-item { color:#cbd5e1; }
+  .sidebar-item:hover { background:#1e293b; color:white; }
+  .sidebar-active { background:#0f172a; color:white; border-left:3px solid #6366f1; }
+  table { font-size: 13px; }
+  th { font-weight: 600; color:#475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+  tr:hover { background:#f8fafc; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+  .b-new { background:#dbeafe; color:#1e40af; }
+  .b-hot { background:#fee2e2; color:#991b1b; }
+  .b-warm { background:#fef3c7; color:#854d0e; }
+  .b-vip { background:#f3e8ff; color:#6b21a8; }
+  .b-active { background:#dcfce7; color:#166534; }
+  .b-dormant { background:#f1f5f9; color:#475569; }
+  .b-ai { background:#ede9fe; color:#5b21b6; }
+  .b-success { background:#dcfce7; color:#166534; }
+  .b-pending { background:#fef3c7; color:#854d0e; }
+  .b-error { background:#fee2e2; color:#991b1b; }
+  .pulse { animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .pulse-dot { display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;margin-right:4px;vertical-align:middle;animation:pulse 1.5s infinite }
+  .scroll-x { overflow-x: auto; }
+  [hidden] { display:none !important; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  /* スピナー */
+  .spinner { border:2px solid #e2e8f0; border-top-color:#4f46e5; border-radius:50%; width:14px; height:14px; animation:spin .6s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg) } }
+</style>
+</head>
+<body class="bg-slate-50">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0">
+    <div class="px-5 py-4 border-b border-slate-700 flex items-center gap-2">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 grid place-items-center font-bold text-sm">AI</div>
+      <div>
+        <p class="font-bold text-sm">AI×CRM 管理コンソール</p>
+        <p class="text-xs text-slate-400">アリオン株式会社</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+      <p class="px-5 py-1 text-xs text-slate-500 uppercase">業務</p>
+      <button onclick="nav('dashboard')" id="nav-dashboard" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📊</span>ダッシュボード</button>
+      <button onclick="nav('customers')" id="nav-customers" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>👥</span>顧客管理</button>
+      <button onclick="nav('leads')"     id="nav-leads"     class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>🔥</span>見込客（リード）<span class="ml-auto bg-rose-500 text-white text-xs px-1.5 rounded">7</span></button>
+      <button onclick="nav('deals')"     id="nav-deals"     class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>💼</span>商談パイプライン</button>
+      <button onclick="nav('tasks')"     id="nav-tasks"     class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>✅</span>タスク・受信箱<span class="ml-auto bg-indigo-500 text-white text-xs px-1.5 rounded">12</span></button>
+      <button onclick="nav('orders')"    id="nav-orders"    class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📦</span>受注管理</button>
+      <button onclick="nav('inventory')" id="nav-inventory" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>🏪</span>在庫・商品管理</button>
+      <button onclick="nav('campaigns')" id="nav-campaigns" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📨</span>キャンペーン</button>
+
+      <p class="px-5 py-1 mt-3 text-xs text-slate-500 uppercase">AI</p>
+      <button onclick="nav('insights')" id="nav-insights" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>✨</span>AI提案<span class="ml-auto bg-purple-500 text-white text-xs px-1.5 rounded">4</span></button>
+      <button onclick="nav('approvals')" id="nav-approvals" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>🔏</span>AI承認待ち</button>
+      <button onclick="nav('agent-log')" id="nav-agent-log" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📜</span>AI実行ログ</button>
+
+      <p class="px-5 py-1 mt-3 text-xs text-slate-500 uppercase">分析</p>
+      <button onclick="nav('reports')" id="nav-reports" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📈</span>レポート</button>
+      <button onclick="nav('analytics')" id="nav-analytics" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>📊</span>BigQuery分析</button>
+
+      <p class="px-5 py-1 mt-3 text-xs text-slate-500 uppercase">設定</p>
+      <button onclick="nav('integrations')" id="nav-integrations" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>🔌</span>連携・API</button>
+      <button onclick="nav('users')" id="nav-users" class="sidebar-item w-full text-left px-5 py-2 flex items-center gap-3"><span>👤</span>ユーザー・権限</button>
+    </nav>
+
+    <div class="border-t border-slate-700 px-4 py-3 text-xs text-slate-400">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-indigo-500 grid place-items-center text-sm font-bold text-white">梶</div>
+        <div class="flex-1">
+          <p class="text-white">梶原（管理者）</p>
+          <p>kajiwara@alion.jp</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Top bar -->
+    <header class="bg-white border-b px-6 py-3 flex items-center justify-between flex-shrink-0">
+      <div class="breadcrumb text-sm text-slate-500">
+        <span id="breadcrumb">ホーム / ダッシュボード</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <input type="text" placeholder="🔍 顧客・商品・商談を検索" class="px-3 py-1.5 border rounded-lg text-sm w-72">
+        <span class="text-xs text-emerald-600"><span class="pulse-dot"></span>AIエージェント稼働中</span>
+        <button class="relative px-2 py-1 hover:bg-slate-100 rounded">
+          🔔
+          <span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full w-4 h-4 grid place-items-center">3</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content area -->
+    <div class="flex-1 overflow-y-auto" id="content">
+
+      <!-- ========= DASHBOARD ========= -->
+      <section class="page p-6" id="view-dashboard">
+        <h1 class="text-2xl font-bold mb-1">ダッシュボード</h1>
+        <p class="text-sm text-slate-500 mb-6">最終更新: 2026/05/20 09:42 ・ AIエージェント自動更新中</p>
+
+        <!-- KPI cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-lg p-4 border">
+            <p class="text-xs text-slate-500">今月EC売上</p>
+            <p class="text-2xl font-bold mt-1">¥6,840,000</p>
+            <p class="text-xs text-emerald-600 mt-1">↑ 前月比 +14.2%</p>
+          </div>
+          <div class="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg p-4 text-white">
+            <p class="text-xs opacity-80">月商目標</p>
+            <p class="text-2xl font-bold mt-1">¥10,000,000</p>
+            <div class="bg-white/20 rounded-full h-1.5 mt-2"><div class="bg-white rounded-full h-1.5" style="width:68.4%"></div></div>
+            <p class="text-xs mt-1">達成率 68.4%</p>
+          </div>
+          <div class="bg-white rounded-lg p-4 border">
+            <p class="text-xs text-slate-500">未対応タスク</p>
+            <p class="text-2xl font-bold mt-1">12<span class="text-sm text-slate-500"> 件</span></p>
+            <p class="text-xs text-amber-600 mt-1">うちAI生成: 9件</p>
+          </div>
+          <div class="bg-white rounded-lg p-4 border">
+            <p class="text-xs text-slate-500">AI予測 月末着地</p>
+            <p class="text-2xl font-bold mt-1">¥9,200,000</p>
+            <p class="text-xs text-slate-500 mt-1">±5% (信頼区間)</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div class="bg-white rounded-lg p-5 border lg:col-span-2">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold">月商推移 vs 目標</h3>
+              <select class="text-xs border rounded px-2 py-1"><option>過去12ヶ月</option><option>過去6ヶ月</option></select>
+            </div>
+            <canvas id="revenueChart" height="100"></canvas>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-bold mb-3">チャネル別売上構成</h3>
+            <canvas id="channelChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div class="bg-white rounded-lg border">
+            <div class="px-5 py-3 border-b flex items-center justify-between">
+              <h3 class="font-bold">📋 本日の優先タスク</h3>
+              <button onclick="nav('tasks')" class="text-xs text-indigo-600 hover:underline">すべて見る →</button>
+            </div>
+            <div class="divide-y" id="dash-tasks"></div>
+          </div>
+          <div class="bg-white rounded-lg border">
+            <div class="px-5 py-3 border-b flex items-center justify-between">
+              <h3 class="font-bold">🔥 ホットリード TOP5</h3>
+              <button onclick="nav('leads')" class="text-xs text-indigo-600 hover:underline">すべて見る →</button>
+            </div>
+            <div class="divide-y" id="dash-leads"></div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-5 border border-purple-100">
+          <h3 class="font-bold mb-3">✨ AIによる本日の提案</h3>
+          <div id="dash-insights" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ========= CUSTOMERS ========= -->
+      <section class="page p-6" id="view-customers" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">顧客管理</h1>
+            <p class="text-sm text-slate-500">Oracle DB連携・全 5,432 件</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 border rounded-lg text-sm hover:bg-slate-50">📥 CSV出力</button>
+            <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ 新規顧客</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg border mb-4 p-4 flex flex-wrap gap-3 items-center">
+          <input type="text" placeholder="顧客名・メール・電話" class="px-3 py-1.5 border rounded text-sm flex-1 min-w-[200px]">
+          <select class="px-3 py-1.5 border rounded text-sm">
+            <option>全セグメント</option><option>新規</option><option>リピート</option><option>VIP</option><option>休眠</option>
+          </select>
+          <select class="px-3 py-1.5 border rounded text-sm">
+            <option>LTVスコア</option><option>高(80+)</option><option>中(50-79)</option><option>低</option>
+          </select>
+          <select class="px-3 py-1.5 border rounded text-sm">
+            <option>登録チャネル</option><option>EC</option><option>LINE</option><option>店舗</option>
+          </select>
+          <button class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded text-sm">適用</button>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <div class="scroll-x">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3"><input type="checkbox"></th>
+                <th class="text-left p-3">顧客ID</th>
+                <th class="text-left p-3">氏名</th>
+                <th class="text-left p-3">セグメント</th>
+                <th class="text-left p-3">LTV(予測)</th>
+                <th class="text-left p-3">最終購入</th>
+                <th class="text-left p-3">累計購入</th>
+                <th class="text-left p-3">チャネル</th>
+                <th class="text-left p-3">スコア</th>
+                <th class="text-left p-3"></th>
+              </tr>
+            </thead>
+            <tbody id="customers-table"></tbody>
+          </table>
+          </div>
+          <div class="px-4 py-3 border-t flex items-center justify-between text-sm text-slate-500">
+            <span>1 - 12 / 5,432 件</span>
+            <div class="flex gap-1">
+              <button class="px-2 py-1 border rounded hover:bg-slate-50">‹</button>
+              <button class="px-2 py-1 bg-indigo-50 border-indigo-200 border rounded">1</button>
+              <button class="px-2 py-1 border rounded hover:bg-slate-50">2</button>
+              <button class="px-2 py-1 border rounded hover:bg-slate-50">3</button>
+              <button class="px-2 py-1 border rounded hover:bg-slate-50">›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= LEADS ========= -->
+      <section class="page p-6" id="view-leads" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">見込客（リード）</h1>
+            <p class="text-sm text-slate-500">AIスコアリング・行動データ × 購買履歴 × LTV予測</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="recomputeAll()" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-slate-50">🔄 スコア再計算</button>
+            <button onclick="bulkApproach()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">📨 一括AIアプローチ</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div class="bg-white rounded-lg p-3 border"><p class="text-xs text-slate-500">スコア90+</p><p class="text-xl font-bold text-rose-600">3名</p></div>
+          <div class="bg-white rounded-lg p-3 border"><p class="text-xs text-slate-500">スコア80-89</p><p class="text-xl font-bold text-amber-600">1名</p></div>
+          <div class="bg-white rounded-lg p-3 border"><p class="text-xs text-slate-500">スコア70-79</p><p class="text-xl font-bold text-emerald-600">3名</p></div>
+          <div class="bg-white rounded-lg p-3 border"><p class="text-xs text-slate-500">未アプローチ</p><p class="text-xl font-bold text-slate-700">5名</p></div>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <div class="scroll-x">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3"><input type="checkbox"></th>
+                <th class="text-left p-3">顧客</th>
+                <th class="text-left p-3">スコア</th>
+                <th class="text-left p-3">セグメント</th>
+                <th class="text-left p-3">直近行動</th>
+                <th class="text-left p-3">AI推奨アクション</th>
+                <th class="text-left p-3">予測売上</th>
+                <th class="text-left p-3">チャネル</th>
+                <th class="text-left p-3"></th>
+              </tr>
+            </thead>
+            <tbody id="leads-table"></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= DEALS ========= -->
+      <section class="page p-6" id="view-deals" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">商談パイプライン</h1>
+            <p class="text-sm text-slate-500">月内見込 ¥4,820,000 / AI自動生成 36件 / 手動 12件</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 border rounded-lg text-sm">⊞ ボード</button>
+            <button class="px-3 py-1.5 border rounded-lg text-sm bg-slate-100">≡ リスト</button>
+            <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ 商談作成</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 mb-6 text-center">
+          <div class="bg-slate-50 rounded p-2"><p class="text-xs text-slate-500">新規</p><p class="font-bold">2件 / ¥372K</p></div>
+          <div class="bg-amber-50 rounded p-2"><p class="text-xs text-amber-700">検討中</p><p class="font-bold">2件 / ¥658K</p></div>
+          <div class="bg-indigo-50 rounded p-2"><p class="text-xs text-indigo-700">提案中</p><p class="font-bold">1件 / ¥230K</p></div>
+          <div class="bg-emerald-50 rounded p-2"><p class="text-xs text-emerald-700">受注</p><p class="font-bold">2件 / ¥301K</p></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="deals-board"></div>
+      </section>
+
+      <!-- ========= TASKS ========= -->
+      <section class="page p-6" id="view-tasks" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">タスク・受信箱</h1>
+            <p class="text-sm text-slate-500">AIが自動生成したタスク + 手動タスク</p>
+          </div>
+          <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ タスク作成</button>
+        </div>
+
+        <div class="flex gap-2 mb-4 text-sm">
+          <button class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded">未対応 (12)</button>
+          <button class="px-3 py-1.5 bg-slate-100 rounded hover:bg-slate-200">対応中 (4)</button>
+          <button class="px-3 py-1.5 bg-slate-100 rounded hover:bg-slate-200">完了 (38)</button>
+          <button class="px-3 py-1.5 bg-slate-100 rounded hover:bg-slate-200">すべて</button>
+        </div>
+
+        <div class="bg-white rounded-lg border divide-y" id="tasks-list"></div>
+      </section>
+
+      <!-- ========= ORDERS ========= -->
+      <section class="page p-6" id="view-orders" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">受注管理</h1>
+            <p class="text-sm text-slate-500">今月 168件 / ¥6,840,000</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 border rounded-lg text-sm">📥 CSV出力</button>
+            <button class="px-3 py-1.5 border rounded-lg text-sm">🖨 配送伝票印刷</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-3 mb-4">
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">新規注文</p><p class="text-xl font-bold">14</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">出荷準備中</p><p class="text-xl font-bold text-amber-600">8</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">出荷済</p><p class="text-xl font-bold text-indigo-600">23</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">配送完了</p><p class="text-xl font-bold text-emerald-600">119</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">キャンセル</p><p class="text-xl font-bold text-slate-400">4</p></div>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <div class="scroll-x">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">注文番号</th>
+                <th class="text-left p-3">日時</th>
+                <th class="text-left p-3">顧客</th>
+                <th class="text-left p-3">商品</th>
+                <th class="text-left p-3">金額</th>
+                <th class="text-left p-3">支払</th>
+                <th class="text-left p-3">ステータス</th>
+                <th class="text-left p-3">AI接客</th>
+                <th class="text-left p-3"></th>
+              </tr>
+            </thead>
+            <tbody id="orders-table"></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= INVENTORY ========= -->
+      <section class="page p-6" id="view-inventory" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">在庫・商品管理</h1>
+            <p class="text-sm text-slate-500">登録商品 248点 / 3D対応 142点 / AR対応 98点</p>
+          </div>
+          <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ 商品追加</button>
+        </div>
+
+        <div class="bg-rose-50 border border-rose-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+          <span class="text-2xl">⚠️</span>
+          <div class="flex-1">
+            <p class="font-bold text-rose-900">在庫切迫アラート 3件</p>
+            <p class="text-sm text-rose-700">AIが発注タイミングを提案中。「AI提案」メニューから確認できます。</p>
+          </div>
+          <button class="px-3 py-1.5 bg-rose-600 text-white rounded text-sm">確認</button>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <div class="scroll-x">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">SKU</th>
+                <th class="text-left p-3">商品名</th>
+                <th class="text-left p-3">カテゴリ</th>
+                <th class="text-left p-3">価格</th>
+                <th class="text-left p-3">在庫</th>
+                <th class="text-left p-3">今月閲覧</th>
+                <th class="text-left p-3">CVR</th>
+                <th class="text-left p-3">3D/AR</th>
+                <th class="text-left p-3">AI推奨</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table"></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= CAMPAIGNS ========= -->
+      <section class="page p-6" id="view-campaigns" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">キャンペーン</h1>
+            <p class="text-sm text-slate-500">LINE / メール一括配信・AI自動生成キャンペーン</p>
+          </div>
+          <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ 新規キャンペーン</button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">配信中</p><p class="text-xl font-bold text-emerald-600">3</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">予約中</p><p class="text-xl font-bold text-amber-600">2</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">下書き</p><p class="text-xl font-bold">4</p></div>
+          <div class="bg-white rounded p-3 border"><p class="text-xs text-slate-500">今月成果</p><p class="text-xl font-bold text-indigo-600">¥1.2M</p></div>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">キャンペーン名</th>
+                <th class="text-left p-3">チャネル</th>
+                <th class="text-left p-3">対象</th>
+                <th class="text-left p-3">開封率</th>
+                <th class="text-left p-3">CTR</th>
+                <th class="text-left p-3">CV</th>
+                <th class="text-left p-3">売上貢献</th>
+                <th class="text-left p-3">ステータス</th>
+                <th class="text-left p-3">作成者</th>
+              </tr>
+            </thead>
+            <tbody id="campaigns-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========= INSIGHTS ========= -->
+      <section class="page p-6" id="view-insights" hidden>
+        <h1 class="text-2xl font-bold mb-1">AI提案</h1>
+        <p class="text-sm text-slate-500 mb-6">BigQuery集計データを基にAIが本日のアクションを提案します</p>
+        <div id="insights-list" class="space-y-3"></div>
+      </section>
+
+      <!-- ========= APPROVALS ========= -->
+      <section class="page p-6" id="view-approvals" hidden>
+        <h1 class="text-2xl font-bold mb-1">AI承認待ち</h1>
+        <p class="text-sm text-slate-500 mb-6">AIが提案・実行を保留している項目。承認するとAIエージェントが自動実行します。</p>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">種別</th>
+                <th class="text-left p-3">内容</th>
+                <th class="text-left p-3">対象</th>
+                <th class="text-left p-3">予測効果</th>
+                <th class="text-left p-3">AI根拠</th>
+                <th class="text-left p-3">起票時刻</th>
+                <th class="text-left p-3"></th>
+              </tr>
+            </thead>
+            <tbody id="approvals-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========= AGENT LOG ========= -->
+      <section class="page p-6" id="view-agent-log" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">AI実行ログ</h1>
+            <p class="text-sm text-slate-500">AIエージェントの全実行履歴（監査用）</p>
+          </div>
+          <div class="flex gap-2">
+            <select class="px-3 py-1.5 border rounded text-sm"><option>全エージェント</option><option>接客AI</option><option>営業AI</option><option>在庫AI</option></select>
+            <input type="date" value="2026-05-20" class="px-3 py-1.5 border rounded text-sm">
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <div class="scroll-x">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">時刻</th>
+                <th class="text-left p-3">エージェント</th>
+                <th class="text-left p-3">ツール</th>
+                <th class="text-left p-3">入力</th>
+                <th class="text-left p-3">結果</th>
+                <th class="text-left p-3">所要</th>
+                <th class="text-left p-3">トークン</th>
+                <th class="text-left p-3">ステータス</th>
+              </tr>
+            </thead>
+            <tbody id="agent-log-table"></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= REPORTS ========= -->
+      <section class="page p-6" id="view-reports" hidden>
+        <h1 class="text-2xl font-bold mb-6">レポート</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">📊</p><p class="font-bold">月次売上レポート</p><p class="text-xs text-slate-500 mt-1">毎月1日にAIが自動生成</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">🎯</p><p class="font-bold">商談AIスコアリング分析</p><p class="text-xs text-slate-500 mt-1">スコアの予測精度・適合率</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">📨</p><p class="font-bold">キャンペーン効果分析</p><p class="text-xs text-slate-500 mt-1">LINE・メール比較</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">🛒</p><p class="font-bold">CV経路分析</p><p class="text-xs text-slate-500 mt-1">流入から購入までの動線</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">📦</p><p class="font-bold">商品売れ筋・滞留</p><p class="text-xs text-slate-500 mt-1">在庫回転率レポート</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border hover:shadow-lg cursor-pointer">
+            <p class="text-2xl mb-2">💰</p><p class="font-bold">LTVコホート分析</p><p class="text-xs text-slate-500 mt-1">獲得月別の累計購入額</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= ANALYTICS ========= -->
+      <section class="page p-6" id="view-analytics" hidden>
+        <h1 class="text-2xl font-bold mb-1">BigQuery分析</h1>
+        <p class="text-sm text-slate-500 mb-6">統合DWHに対してSQLクエリ・AI自然言語問合せを実行</p>
+
+        <div class="bg-white rounded-lg border p-5 mb-4">
+          <h3 class="font-bold mb-3">🤖 AIに質問する</h3>
+          <div class="flex gap-2">
+            <input type="text" placeholder="例: 今週ソファカテゴリで一番閲覧された商品TOP3を教えて" class="flex-1 px-3 py-2 border rounded text-sm">
+            <button class="bg-purple-600 text-white px-4 py-2 rounded text-sm">分析</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">AIがSQLを生成してBigQueryに問合せます</p>
+        </div>
+
+        <div class="bg-white rounded-lg border">
+          <div class="px-5 py-3 border-b font-bold">📝 直近のクエリ</div>
+          <div class="divide-y">
+            <div class="p-4 hover:bg-slate-50">
+              <p class="font-mono text-xs text-slate-600 mb-1">SELECT category, SUM(views) FROM access_logs WHERE date &gt;= '2026-05-13' GROUP BY category</p>
+              <p class="text-xs text-slate-500">梶原 / 5/19 14:23 / 3.2秒 / 12,438 行スキャン</p>
+            </div>
+            <div class="p-4 hover:bg-slate-50">
+              <p class="font-mono text-xs text-slate-600 mb-1">SELECT customer_id, SUM(amount) FROM deals WHERE stage='won' GROUP BY customer_id ORDER BY 2 DESC LIMIT 100</p>
+              <p class="text-xs text-slate-500">AI営業 / 5/19 09:00 / 1.8秒 / 4,820 行スキャン</p>
+            </div>
+            <div class="p-4 hover:bg-slate-50">
+              <p class="font-mono text-xs text-slate-600 mb-1">-- AIが生成したクエリ（在庫予測）<br>WITH velocity AS ( ... )</p>
+              <p class="text-xs text-slate-500">AI在庫 / 5/19 06:00 / 5.4秒 / 88,452 行スキャン</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= INTEGRATIONS ========= -->
+      <section class="page p-6" id="view-integrations" hidden>
+        <h1 class="text-2xl font-bold mb-6">連携・API</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">🗄</span><div><p class="font-bold">Oracle Database (AWS)</p><p class="text-xs text-slate-500">既存資産・顧客/商品/実例</p></div><span class="ml-auto badge b-success">接続済</span></div>
+            <p class="text-xs text-slate-500">最終同期: 09:42 / 5,432件</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">📊</span><div><p class="font-bold">BigQuery</p><p class="text-xs text-slate-500">統合DWH</p></div><span class="ml-auto badge b-success">接続済</span></div>
+            <p class="text-xs text-slate-500">テーブル: 24個 / 8.4 TB</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">📈</span><div><p class="font-bold">Google Analytics 4</p><p class="text-xs text-slate-500">アクセス・行動データ</p></div><span class="ml-auto badge b-success">接続済</span></div>
+            <p class="text-xs text-slate-500">BQ Export 有効</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">🤖</span><div><p class="font-bold">Anthropic Claude API</p><p class="text-xs text-slate-500">AIエージェント</p></div><span class="ml-auto badge b-success">接続済</span></div>
+            <p class="text-xs text-slate-500">今月使用: 1.2M tokens / ¥143,000</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">💬</span><div><p class="font-bold">LINE Messaging API</p><p class="text-xs text-slate-500">顧客チャネル</p></div><span class="ml-auto badge b-success">接続済</span></div>
+            <p class="text-xs text-slate-500">登録ユーザー 2,318名</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">🔌</span><div><p class="font-bold">MCPサーバー</p><p class="text-xs text-slate-500">AI ⇔ DB 統合IF</p></div><span class="ml-auto badge b-success">稼働中</span></div>
+            <p class="text-xs text-slate-500">登録ツール 6個</p>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">🛍</span><div><p class="font-bold">Googleレコメンドエンジン</p><p class="text-xs text-slate-500">商品レコメンド</p></div><span class="ml-auto badge b-success">接続済</span></div>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <div class="flex items-center gap-3 mb-3"><span class="text-3xl">📧</span><div><p class="font-bold">SendGrid (メール配信)</p><p class="text-xs text-slate-500">トランザクション・キャンペーン</p></div><span class="ml-auto badge b-pending">設定中</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========= USERS ========= -->
+      <section class="page p-6" id="view-users" hidden>
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">ユーザー・権限</h1>
+          <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">＋ ユーザー追加</button>
+        </div>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="text-left p-3">氏名</th>
+                <th class="text-left p-3">メール</th>
+                <th class="text-left p-3">権限</th>
+                <th class="text-left p-3">最終ログイン</th>
+                <th class="text-left p-3">AI実行権限</th>
+                <th class="text-left p-3">ステータス</th>
+                <th class="text-left p-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b"><td class="p-3 font-medium">梶原</td><td class="p-3 text-slate-600">kajiwara@alion.jp</td><td class="p-3"><span class="badge b-vip">管理者</span></td><td class="p-3 text-slate-500">5/20 09:30</td><td class="p-3 text-emerald-600">全て</td><td class="p-3"><span class="badge b-active">有効</span></td><td class="p-3"><button class="text-xs text-indigo-600">編集</button></td></tr>
+              <tr class="border-b"><td class="p-3 font-medium">営業A 山田</td><td class="p-3 text-slate-600">yamada@alion.jp</td><td class="p-3"><span class="badge b-new">営業</span></td><td class="p-3 text-slate-500">5/20 08:15</td><td class="p-3 text-amber-600">承認後</td><td class="p-3"><span class="badge b-active">有効</span></td><td class="p-3"><button class="text-xs text-indigo-600">編集</button></td></tr>
+              <tr class="border-b"><td class="p-3 font-medium">CS 鈴木</td><td class="p-3 text-slate-600">suzuki@alion.jp</td><td class="p-3"><span class="badge b-warm">CS</span></td><td class="p-3 text-slate-500">5/19 18:42</td><td class="p-3 text-amber-600">承認後</td><td class="p-3"><span class="badge b-active">有効</span></td><td class="p-3"><button class="text-xs text-indigo-600">編集</button></td></tr>
+              <tr><td class="p-3 font-medium">エンジニア 田中</td><td class="p-3 text-slate-600">tanaka@alion.jp</td><td class="p-3"><span class="badge b-new">開発</span></td><td class="p-3 text-slate-500">5/20 02:11</td><td class="p-3 text-emerald-600">全て</td><td class="p-3"><span class="badge b-active">有効</span></td><td class="p-3"><button class="text-xs text-indigo-600">編集</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div id="drawer" class="fixed inset-y-0 right-0 w-[480px] bg-white shadow-2xl border-l z-50 transform translate-x-full transition-transform">
+  <div class="flex items-center justify-between p-4 border-b">
+    <h3 id="drawer-title" class="font-bold">詳細</h3>
+    <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-900">✕</button>
+  </div>
+  <div id="drawer-body" class="p-4 overflow-y-auto" style="height: calc(100% - 60px)"></div>
+</div>
+
+<script>
+/* ============== DATA ============== */
+const CUSTOMERS = [
+  {id:'CST-001',name:'佐藤 美咲',seg:'リピート',ltv:480000,last:'2026/04/12',count:6,ch:'EC',score:94},
+  {id:'CST-002',name:'田中 健一',seg:'新規',    ltv:180000,last:'2026/05/15',count:1,ch:'広告',score:88},
+  {id:'CST-003',name:'山本 葵',  seg:'VIP',     ltv:820000,last:'2026/05/08',count:11,ch:'LINE',score:82},
+  {id:'CST-004',name:'鈴木 大輔',seg:'新規',    ltv:120000,last:'2026/05/18',count:0,ch:'EC',score:78},
+  {id:'CST-005',name:'高橋 真理',seg:'休眠',    ltv:240000,last:'2025/11/05',count:3,ch:'LINE',score:74},
+  {id:'CST-006',name:'伊藤 拓海',seg:'新規',    ltv:80000, last:'2026/05/19',count:0,ch:'広告',score:69},
+  {id:'CST-007',name:'渡辺 さくら',seg:'リピート',ltv:340000,last:'2026/03/20',count:4,ch:'EC',score:65},
+  {id:'CST-008',name:'中村 健太郎',seg:'VIP',   ltv:1240000,last:'2026/05/10',count:18,ch:'店舗',score:91},
+  {id:'CST-009',name:'小林 由美',seg:'リピート',ltv:280000,last:'2026/04/28',count:3,ch:'EC',score:72},
+  {id:'CST-010',name:'加藤 翔',  seg:'休眠',    ltv:90000, last:'2025/08/15',count:1,ch:'EC',score:42},
+  {id:'CST-011',name:'吉田 ありさ',seg:'新規',  ltv:60000, last:'2026/05/19',count:0,ch:'LINE',score:55},
+  {id:'CST-012',name:'山口 凛',  seg:'リピート',ltv:520000,last:'2026/05/12',count:7,ch:'EC',score:80},
+];
+
+const LEADS = [
+  {id:1,name:'佐藤 美咲',score:94,seg:'リピート',last:'ソファ詳細を3回閲覧 / カート保留',action:'AR体験リンクをLINE送付',revenue:189000,ch:'LINE'},
+  {id:2,name:'田中 健一',score:88,seg:'新規',    last:'ダイニング3点セット閲覧',          action:'実例カタログ + 10%クーポン',revenue:178000,ch:'メール'},
+  {id:3,name:'中村 健太郎',score:91,seg:'VIP',  last:'寝室家具ページ滞在 18分',           action:'専任担当による電話フォロー',revenue:480000,ch:'電話'},
+  {id:4,name:'山本 葵',  score:82,seg:'VIP',    last:'お気に入り5件 / 滞在23分',           action:'コーディネーター提案',revenue:260000,ch:'メール'},
+  {id:5,name:'鈴木 大輔',score:78,seg:'新規',    last:'価格帯比較ページ滞在',              action:'価格相談チャット起動',revenue:120000,ch:'チャット'},
+  {id:6,name:'高橋 真理',score:74,seg:'休眠',    last:'前回購入から180日経過',              action:'リピート提案（ラグ・カーテン）',revenue:48000,ch:'メール'},
+  {id:7,name:'伊藤 拓海',score:69,seg:'新規',    last:'広告経由訪問・3商品閲覧',            action:'初回限定クーポン送付',revenue:36000,ch:'メール'},
+];
+
+const TASKS = [
+  {id:1,title:'佐藤さまへAR体験リンクLINE送付',customer:'佐藤 美咲',due:'今日 18:00',source:'AI',reason:'スコア急上昇',priority:'高'},
+  {id:2,title:'ナチュラルウッドダイニング 在庫補充発注',customer:'-',due:'今日中',source:'AI',reason:'在庫AI予測',priority:'高'},
+  {id:3,title:'中村さま向けカスタム提案書作成',customer:'中村 健太郎',due:'明日 12:00',source:'AI',reason:'VIP高額商談',priority:'高'},
+  {id:4,title:'5月の売れ筋トップ10レポート生成',customer:'-',due:'明日 09:00',source:'AI',reason:'定期実行',priority:'中'},
+  {id:5,title:'リピート見込客（180日経過）20名へクーポン配信',customer:'-',due:'5/21',source:'AI',reason:'チャーン予測',priority:'中'},
+  {id:6,title:'新商品「デスクライト」企画ミーティング招集',customer:'-',due:'5/22',source:'AI',reason:'検索ログ分析',priority:'中'},
+  {id:7,title:'田中さまへ実例カタログ送付',customer:'田中 健一',due:'今日 17:00',source:'AI',reason:'スコア80+',priority:'中'},
+  {id:8,title:'山本さまフォロー電話',customer:'山本 葵',due:'明日 14:00',source:'手動',reason:'-',priority:'低'},
+  {id:9,title:'4月配送遅延の謝罪メール送付',customer:'-',due:'今日中',source:'手動',reason:'-',priority:'高'},
+  {id:10,title:'AR利用ガイド動画 撮影手配',customer:'-',due:'5/25',source:'手動',reason:'-',priority:'低'},
+  {id:11,title:'店頭スタッフ向けAI提案アラート確認',customer:'-',due:'毎日',source:'AI',reason:'業務改善',priority:'低'},
+  {id:12,title:'5月クォータ進捗の経営報告',customer:'-',due:'5/24',source:'手動',reason:'-',priority:'高'},
+];
+
+const ORDERS = [
+  {no:'ORD-26052001',dt:'05/20 09:42',customer:'佐藤 美咲',item:'モダンコーナーソファ',amt:189000,pay:'カード',status:'新規',ai:'有'},
+  {no:'ORD-26052002',dt:'05/20 09:18',customer:'山本 葵',item:'ダイニング3点',amt:324000,pay:'カード',status:'出荷準備中',ai:'有'},
+  {no:'ORD-26052003',dt:'05/20 08:55',customer:'中村 健太郎',item:'寝室セット',amt:480000,pay:'銀行振込',status:'出荷準備中',ai:'有'},
+  {no:'ORD-26052004',dt:'05/20 02:14',customer:'伊藤 拓海',item:'フロアランプ',amt:36800,pay:'カード',status:'出荷済',ai:'有'},
+  {no:'ORD-26051912',dt:'05/19 22:30',customer:'田中 健一',item:'ラグ + サイドテーブル',amt:39300,pay:'代引',status:'出荷済',ai:'無'},
+  {no:'ORD-26051911',dt:'05/19 18:42',customer:'渡辺 さくら',item:'カーテン x 2',amt:25600,pay:'カード',status:'配送完了',ai:'有'},
+  {no:'ORD-26051910',dt:'05/19 17:08',customer:'小林 由美',item:'ダイニングチェア x 4',amt:72000,pay:'カード',status:'配送完了',ai:'無'},
+  {no:'ORD-26051909',dt:'05/19 15:30',customer:'山口 凛',item:'ペンダントライト',amt:22000,pay:'カード',status:'キャンセル',ai:'有'},
+];
+
+const INVENTORY = [
+  {sku:'TABLE-001',name:'ナチュラルウッド ダイニングテーブル',cat:'テーブル',price:128000,stock:3,views:842,cvr:'12.4%',ar:'3D+AR',advice:'発注推奨'},
+  {sku:'SOFA-001', name:'モダンコーナーソファ ベージュ',     cat:'ソファ',  price:189000,stock:8,views:1240,cvr:'8.2%',ar:'3D+AR',advice:'監視'},
+  {sku:'LAMP-001', name:'デザインフロアランプ',              cat:'照明',    price:36800, stock:25,views:580,cvr:'5.4%',ar:'3D',   advice:'-'},
+  {sku:'RUG-001',  name:'オーガニックコットン ラグ',         cat:'ラグ',    price:24500, stock:40,views:312,cvr:'3.1%',ar:'AR',   advice:'-'},
+  {sku:'CHAIR-001',name:'北欧ダイニングチェア',              cat:'チェア',  price:18000, stock:50,views:486,cvr:'7.8%',ar:'3D+AR',advice:'-'},
+  {sku:'TABLE-002',name:'スカンジ サイドテーブル',           cat:'テーブル',price:14800, stock:2, views:128,cvr:'4.2%',ar:'3D',   advice:'発注推奨'},
+  {sku:'CURTAIN-001',name:'リネンカーテン アイボリー',       cat:'カーテン',price:12800, stock:80,views:218,cvr:'2.8%',ar:'AR',   advice:'-'},
+  {sku:'LAMP-002', name:'ペンダントライト ガラス',           cat:'照明',    price:22000, stock:18,views:344,cvr:'6.1%',ar:'3D+AR',advice:'監視'},
+];
+
+const CAMPAIGNS = [
+  {name:'母の日リピート訴求',ch:'LINE',target:'2,318名',open:'72.4%',ctr:'18.2%',cv:'8件',rev:'¥640K',status:'配信中',by:'AI'},
+  {name:'ダイニング3点セット紹介',ch:'メール',target:'1,442名',open:'48.1%',ctr:'12.4%',cv:'12件',rev:'¥456K',status:'配信中',by:'AI'},
+  {name:'休眠顧客リエンゲージ',ch:'メール',target:'480名',open:'34.2%',ctr:'8.8%',cv:'5件',rev:'¥118K',status:'配信中',by:'AI'},
+  {name:'夏のラグ特集',ch:'LINE',target:'2,180名',open:'-',ctr:'-',cv:'-',rev:'-',status:'予約 5/25',by:'梶原'},
+  {name:'新規会員10%OFF',ch:'メール',target:'新規',open:'-',ctr:'-',cv:'-',rev:'-',status:'予約',by:'AI'},
+  {name:'秋冬カーテン早期予約',ch:'LINE',target:'検討中',open:'-',ctr:'-',cv:'-',rev:'-',status:'下書き',by:'梶原'},
+];
+
+const INSIGHTS = [
+  {icon:'🎯',title:'高スコア見込客24名へLINE一括アプローチを推奨',detail:'過去30日でソファ・ラグの両方を閲覧した顧客群。AIがパーソナライズメッセージを生成済み。送信目安: 本日18時。',impact:'予測CV: 8件 / 売上影響 +¥640,000',cta:'承認・実行'},
+  {icon:'📦',title:'在庫切迫: ナチュラルウッドダイニング 残3点',detail:'直近7日で閲覧+88%。3D表示完了率も高い。再入荷予約導線を有効化することを推奨。',impact:'機会損失予測 -¥240,000',cta:'設定する'},
+  {icon:'💡',title:'商品ラインナップ提案: 「在宅ワーク向けデスクライト」追加検討',detail:'GA4の検索ログから「デスクライト」検索が423件あったが該当商品なし。粗利率予測28%。',impact:'予測月間貢献 +¥320,000',cta:'詳細を見る'},
+  {icon:'📨',title:'休眠顧客リエンゲージキャンペーン',detail:'180日以上購入なしの48名のうち、過去にラグ・カーテンを購入した32名にリピート提案。',impact:'予測CV: 6件 / +¥180,000',cta:'承認・実行'},
+];
+
+const APPROVALS = [
+  {kind:'メール一括送付',content:'休眠顧客32名へリピート提案',target:'32名',impact:'+¥180,000',reason:'180日以上未購入 & 過去ラグ・カーテン購入歴',time:'09:32'},
+  {kind:'商品ラインナップ追加',content:'在宅ワーク向けデスクライト3SKU企画',target:'-',impact:'+¥320,000/月',reason:'GA4検索ログ 423件',time:'08:14'},
+  {kind:'値引きクーポン発行',content:'伊藤 拓海さまへ初回10%OFF',target:'伊藤 拓海',impact:'+¥36,000',reason:'広告経由・スコア急上昇',time:'07:48'},
+  {kind:'発注書ドラフト',content:'ナチュラルウッドダイニング 20点',target:'メーカーA',impact:'-',reason:'在庫切迫AI予測',time:'06:00'},
+];
+
+const AGENT_LOG = [
+  {time:'09:42:18',agent:'接客AI',tool:'search_products',input:'category=ソファ price<200000',result:'4件',ms:340,tok:485,status:'success'},
+  {time:'09:41:55',agent:'接客AI',tool:'get_customer',input:'customer_id=1',result:'佐藤 美咲',ms:120,tok:312,status:'success'},
+  {time:'09:38:12',agent:'営業AI',tool:'create_deal',input:'customer_id=3, amount=480000',result:'DEAL-1042 作成',ms:840,tok:1240,status:'success'},
+  {time:'09:35:00',agent:'在庫AI',tool:'bigquery_sql',input:'SELECT inventory velocity...',result:'18 rows',ms:2340,tok:680,status:'success'},
+  {time:'09:33:42',agent:'接客AI',tool:'search_products',input:'query=10畳 ナチュラル',result:'3件',ms:280,tok:412,status:'success'},
+  {time:'09:30:18',agent:'営業AI',tool:'create_task',input:'佐藤さまへAR体験リンクLINE送付',result:'TASK-2331 作成',ms:140,tok:380,status:'success'},
+  {time:'09:28:55',agent:'営業AI',tool:'send_line',input:'高スコア客24名一括',result:'承認待ち',ms:88,tok:240,status:'pending'},
+  {time:'09:25:10',agent:'接客AI',tool:'create_deal',input:'amount=12000',result:'金額閾値未満で中断',ms:42,tok:180,status:'error'},
+  {time:'09:21:08',agent:'分析AI',tool:'bigquery_sql',input:'チャーン予測クエリ',result:'48 rows',ms:5410,tok:920,status:'success'},
+  {time:'09:18:30',agent:'接客AI',tool:'search_products',input:'category=照明',result:'8件',ms:310,tok:445,status:'success'},
+];
+
+/* ============== NAV ============== */
+const PAGE_TITLES = {
+  dashboard:'ダッシュボード', customers:'顧客管理', leads:'見込客（リード）',
+  deals:'商談パイプライン', tasks:'タスク・受信箱', orders:'受注管理',
+  inventory:'在庫・商品管理', campaigns:'キャンペーン', insights:'AI提案',
+  approvals:'AI承認待ち', 'agent-log':'AI実行ログ', reports:'レポート',
+  analytics:'BigQuery分析', integrations:'連携・API', users:'ユーザー・権限'
+};
+function nav(name) {
+  document.querySelectorAll('.page').forEach(p=>p.hidden=true);
+  document.getElementById('view-'+name).hidden = false;
+  document.querySelectorAll('[id^=nav-]').forEach(t=>{ t.classList.remove('sidebar-active'); });
+  document.getElementById('nav-'+name).classList.add('sidebar-active');
+  document.getElementById('breadcrumb').innerHTML = `<a href="#" class="hover:underline">ホーム</a> / ${PAGE_TITLES[name]}`;
+  if (name === 'dashboard') renderCharts();
+}
+
+/* ============== RENDERERS ============== */
+function badgeSeg(s) {
+  const map = {'新規':'b-new','リピート':'b-warm','VIP':'b-vip','休眠':'b-dormant'};
+  return `<span class="badge ${map[s]||'b-new'}">${s}</span>`;
+}
+function scoreBadge(s) {
+  const cls = s>=90 ? 'b-hot' : s>=80 ? 'b-warm' : s>=70 ? 'b-active' : 'b-dormant';
+  return `<span class="badge ${cls}">${s}</span>`;
+}
+
+function renderCustomers() {
+  document.getElementById('customers-table').innerHTML = CUSTOMERS.map(c=>`
+    <tr class="border-b">
+      <td class="p-3"><input type="checkbox"></td>
+      <td class="p-3 font-mono text-xs text-slate-500">${c.id}</td>
+      <td class="p-3 font-medium"><a href="#" onclick="openCustomer('${c.id}')" class="hover:text-indigo-600">${c.name}</a></td>
+      <td class="p-3">${badgeSeg(c.seg)}</td>
+      <td class="p-3">¥${c.ltv.toLocaleString()}</td>
+      <td class="p-3 text-slate-500">${c.last}</td>
+      <td class="p-3">${c.count}回</td>
+      <td class="p-3">${c.ch}</td>
+      <td class="p-3">${scoreBadge(c.score)}</td>
+      <td class="p-3"><button onclick="openCustomer('${c.id}')" class="text-xs text-indigo-600 hover:underline">詳細</button></td>
+    </tr>`).join('');
+}
+
+function renderLeads() {
+  document.getElementById('leads-table').innerHTML = LEADS.map(l=>`
+    <tr class="border-b">
+      <td class="p-3"><input type="checkbox"></td>
+      <td class="p-3 font-medium">${l.name}</td>
+      <td class="p-3">${scoreBadge(l.score)}</td>
+      <td class="p-3">${badgeSeg(l.seg)}</td>
+      <td class="p-3 text-slate-600">${l.last}</td>
+      <td class="p-3 text-indigo-700">${l.action}</td>
+      <td class="p-3 font-medium">¥${l.revenue.toLocaleString()}</td>
+      <td class="p-3"><span class="badge b-dormant">${l.ch}</span></td>
+      <td class="p-3"><button onclick="approachLead(${l.id})" class="text-xs bg-indigo-600 text-white px-3 py-1 rounded">実行</button></td>
+    </tr>`).join('');
+}
+
+function renderDeals() {
+  const cols = [
+    {key:'new',title:'新規',color:'slate',items:[{c:'佐藤 美咲',t:'リビング3点セット',a:324000,src:'AI'},{c:'伊藤 拓海',t:'新規お試しセット',a:48000,src:'AI'}]},
+    {key:'qualified',title:'検討中',color:'amber',items:[{c:'田中 健一',t:'ダイニング刷新',a:178000,src:'AI'},{c:'山本 葵',t:'寝室フルリノベ',a:480000,src:'AI'}]},
+    {key:'proposal',title:'提案中',color:'indigo',items:[{c:'鈴木 大輔',t:'ホームオフィス',a:230000,src:'手動'}]},
+    {key:'won',title:'受注',color:'emerald',items:[{c:'中村 健太郎',t:'ソファ + ラグ',a:213000,src:'AI'},{c:'山口 凛',t:'照明セット',a:88000,src:'AI'}]},
+  ];
+  document.getElementById('deals-board').innerHTML = cols.map(c=>`
+    <div class="bg-white rounded-lg p-3 border">
+      <h3 class="font-bold mb-3 flex items-center justify-between text-sm">
+        <span>${c.title}</span>
+        <span class="text-xs bg-slate-100 px-2 py-0.5 rounded">${c.items.length}</span>
+      </h3>
+      <div class="space-y-2">
+        ${c.items.map(d=>`
+          <div class="bg-slate-50 rounded p-3 hover:bg-slate-100 cursor-pointer border-l-2 border-${c.color}-400">
+            <p class="text-sm font-medium">${d.c}</p>
+            <p class="text-xs text-slate-500">${d.t}</p>
+            <div class="flex items-center justify-between mt-1">
+              <p class="text-sm font-bold">¥${d.a.toLocaleString()}</p>
+              <span class="badge ${d.src==='AI'?'b-ai':'b-dormant'}">${d.src}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTasks() {
+  const priColor = {'高':'bg-rose-500','中':'bg-amber-500','低':'bg-slate-400'};
+  document.getElementById('tasks-list').innerHTML = TASKS.map(t=>`
+    <div class="p-4 flex items-start gap-3 hover:bg-slate-50">
+      <input type="checkbox" class="mt-1">
+      <span class="w-1 h-12 rounded-full ${priColor[t.priority]}"></span>
+      <div class="flex-1">
+        <p class="font-medium text-sm">${t.title}</p>
+        <p class="text-xs text-slate-500 mt-0.5">
+          ${t.customer!=='-'?`👤 ${t.customer} ・ `:''}
+          🕒 ${t.due}
+          ${t.source==='AI'?` ・ <span class="badge b-ai">🤖 AI: ${t.reason}</span>`:` ・ <span class="badge b-dormant">手動</span>`}
+        </p>
+      </div>
+      <button class="text-xs text-indigo-600 hover:underline">対応</button>
+    </div>`).join('');
+}
+
+function renderOrders() {
+  const stColor = {'新規':'b-new','出荷準備中':'b-warm','出荷済':'b-active','配送完了':'b-active','キャンセル':'b-dormant'};
+  document.getElementById('orders-table').innerHTML = ORDERS.map(o=>`
+    <tr class="border-b">
+      <td class="p-3 font-mono text-xs">${o.no}</td>
+      <td class="p-3 text-slate-500">${o.dt}</td>
+      <td class="p-3 font-medium">${o.customer}</td>
+      <td class="p-3 text-slate-600">${o.item}</td>
+      <td class="p-3 font-medium">¥${o.amt.toLocaleString()}</td>
+      <td class="p-3 text-slate-500">${o.pay}</td>
+      <td class="p-3"><span class="badge ${stColor[o.status]||'b-new'}">${o.status}</span></td>
+      <td class="p-3">${o.ai==='有'?'<span class="badge b-ai">🤖 経由</span>':'<span class="text-slate-400 text-xs">-</span>'}</td>
+      <td class="p-3"><button class="text-xs text-indigo-600 hover:underline">詳細</button></td>
+    </tr>`).join('');
+}
+
+function renderInventory() {
+  const advColor = {'発注推奨':'b-hot','監視':'b-warm','-':''};
+  document.getElementById('inventory-table').innerHTML = INVENTORY.map(p=>`
+    <tr class="border-b">
+      <td class="p-3 font-mono text-xs text-slate-500">${p.sku}</td>
+      <td class="p-3 font-medium">${p.name}</td>
+      <td class="p-3 text-slate-500">${p.cat}</td>
+      <td class="p-3">¥${p.price.toLocaleString()}</td>
+      <td class="p-3 ${p.stock<5?'text-rose-600 font-bold':p.stock<10?'text-amber-600':''}">${p.stock}</td>
+      <td class="p-3">${p.views}</td>
+      <td class="p-3">${p.cvr}</td>
+      <td class="p-3"><span class="badge ${p.ar.includes('AR')?'b-vip':'b-new'}">${p.ar}</span></td>
+      <td class="p-3">${p.advice!=='-'?`<span class="badge ${advColor[p.advice]}">${p.advice}</span>`:'<span class="text-slate-400">-</span>'}</td>
+    </tr>`).join('');
+}
+
+function renderCampaigns() {
+  const stColor = {'配信中':'b-active','予約 5/25':'b-warm','予約':'b-warm','下書き':'b-dormant'};
+  document.getElementById('campaigns-table').innerHTML = CAMPAIGNS.map(c=>`
+    <tr class="border-b">
+      <td class="p-3 font-medium">${c.name}</td>
+      <td class="p-3"><span class="badge ${c.ch==='LINE'?'b-active':'b-new'}">${c.ch}</span></td>
+      <td class="p-3 text-slate-600">${c.target}</td>
+      <td class="p-3">${c.open}</td>
+      <td class="p-3">${c.ctr}</td>
+      <td class="p-3">${c.cv}</td>
+      <td class="p-3 font-medium">${c.rev}</td>
+      <td class="p-3"><span class="badge ${stColor[c.status]||'b-new'}">${c.status}</span></td>
+      <td class="p-3">${c.by==='AI'?'<span class="badge b-ai">🤖 AI</span>':c.by}</td>
+    </tr>`).join('');
+}
+
+function renderInsights() {
+  document.getElementById('insights-list').innerHTML = INSIGHTS.map(i=>`
+    <div class="bg-white rounded-lg p-4 border flex items-start gap-3">
+      <span class="text-2xl">${i.icon}</span>
+      <div class="flex-1">
+        <p class="font-medium">${i.title}</p>
+        <p class="text-sm text-slate-600 mt-1">${i.detail}</p>
+        <p class="text-xs text-emerald-600 mt-1">${i.impact}</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm whitespace-nowrap">${i.cta}</button>
+        <button class="border px-3 py-1.5 rounded text-sm">後で</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderApprovals() {
+  document.getElementById('approvals-table').innerHTML = APPROVALS.map(a=>`
+    <tr class="border-b">
+      <td class="p-3"><span class="badge b-ai">${a.kind}</span></td>
+      <td class="p-3 font-medium">${a.content}</td>
+      <td class="p-3 text-slate-600">${a.target}</td>
+      <td class="p-3 font-medium text-emerald-600">${a.impact}</td>
+      <td class="p-3 text-xs text-slate-500">${a.reason}</td>
+      <td class="p-3 text-xs text-slate-500">${a.time}</td>
+      <td class="p-3">
+        <div class="flex gap-1">
+          <button class="bg-emerald-600 text-white px-3 py-1 rounded text-xs">承認</button>
+          <button class="border px-2 py-1 rounded text-xs">却下</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAgentLog() {
+  const stColor = {'success':'b-success','pending':'b-pending','error':'b-error'};
+  document.getElementById('agent-log-table').innerHTML = AGENT_LOG.map(l=>`
+    <tr class="border-b">
+      <td class="p-3 font-mono text-xs">${l.time}</td>
+      <td class="p-3"><span class="badge ${l.agent==='接客AI'?'b-new':l.agent==='営業AI'?'b-warm':l.agent==='在庫AI'?'b-vip':'b-active'}">${l.agent}</span></td>
+      <td class="p-3 font-mono text-xs">${l.tool}</td>
+      <td class="p-3 text-slate-500 text-xs max-w-xs truncate">${l.input}</td>
+      <td class="p-3 text-slate-600 text-xs">${l.result}</td>
+      <td class="p-3 text-slate-500 text-xs">${l.ms}ms</td>
+      <td class="p-3 text-slate-500 text-xs">${l.tok}</td>
+      <td class="p-3"><span class="badge ${stColor[l.status]}">${l.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderDashboard() {
+  document.getElementById('dash-tasks').innerHTML = TASKS.slice(0,5).map(t=>`
+    <div class="p-3 flex items-center gap-2 hover:bg-slate-50">
+      <input type="checkbox">
+      <div class="flex-1">
+        <p class="text-sm font-medium">${t.title}</p>
+        <p class="text-xs text-slate-500">${t.due} ${t.source==='AI'?'・ 🤖 AI':''}</p>
+      </div>
+    </div>`).join('');
+  document.getElementById('dash-leads').innerHTML = LEADS.slice(0,5).map(l=>`
+    <div class="p-3 flex items-center gap-2 hover:bg-slate-50">
+      <div class="flex-1">
+        <p class="text-sm font-medium">${l.name} ${scoreBadge(l.score)}</p>
+        <p class="text-xs text-slate-500">${l.last}</p>
+      </div>
+      <button class="text-xs text-indigo-600">対応</button>
+    </div>`).join('');
+  document.getElementById('dash-insights').innerHTML = INSIGHTS.slice(0,3).map(i=>`
+    <div class="bg-white rounded p-3 border flex items-center gap-2 text-sm">
+      <span class="text-xl">${i.icon}</span>
+      <p class="flex-1 truncate">${i.title}</p>
+      <span class="text-xs text-emerald-600 whitespace-nowrap">${i.impact}</span>
+    </div>`).join('');
+}
+
+/* ============== DRAWER ============== */
+function openCustomer(id) {
+  const c = CUSTOMERS.find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('drawer-title').textContent = c.name;
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div><p class="text-xs text-slate-500">顧客ID</p><p class="font-mono text-sm">${c.id}</p></div>
+        <div><p class="text-xs text-slate-500">セグメント</p>${badgeSeg(c.seg)}</div>
+        <div><p class="text-xs text-slate-500">AIスコア</p>${scoreBadge(c.score)}</div>
+        <div><p class="text-xs text-slate-500">LTV予測</p><p class="font-medium">¥${c.ltv.toLocaleString()}</p></div>
+        <div><p class="text-xs text-slate-500">累計購入</p><p>${c.count}回</p></div>
+        <div><p class="text-xs text-slate-500">最終購入</p><p>${c.last}</p></div>
+      </div>
+      <div class="border-t pt-3">
+        <p class="text-xs text-slate-500 mb-2">直近の行動</p>
+        <ul class="text-sm space-y-1">
+          <li>・ 5/19 21:30 — ソファ詳細を閲覧</li>
+          <li>・ 5/19 21:24 — ARで部屋に試し置き</li>
+          <li>・ 5/19 21:18 — お気に入り追加</li>
+          <li>・ 5/18 14:02 — トップページ訪問</li>
+        </ul>
+      </div>
+      <div class="border-t pt-3">
+        <p class="text-xs text-slate-500 mb-2">AIによる推奨</p>
+        <div class="bg-purple-50 p-3 rounded text-sm">
+          <p class="font-medium">📨 AR体験リンクをLINE送付（本日18時）</p>
+          <p class="text-xs text-slate-600 mt-1">スコア急上昇 + カート保留状態。CV見込み82%。</p>
+          <button class="mt-2 bg-purple-600 text-white px-3 py-1 rounded text-xs">承認・実行</button>
+        </div>
+      </div>
+      <div class="border-t pt-3 flex gap-2">
+        <button class="flex-1 bg-indigo-600 text-white py-2 rounded text-sm">📧 メール</button>
+        <button class="flex-1 bg-emerald-600 text-white py-2 rounded text-sm">💬 LINE</button>
+        <button class="flex-1 border py-2 rounded text-sm">📞 電話</button>
+      </div>
+    </div>`;
+  document.getElementById('drawer').style.transform = 'translateX(0)';
+}
+function closeDrawer() {
+  document.getElementById('drawer').style.transform = 'translateX(100%)';
+}
+
+/* ============== ACTIONS ============== */
+function approachLead(id) {
+  const l = LEADS.find(x=>x.id===id);
+  showToast(`${l.name}さまへ「${l.action}」を実行しました`);
+}
+function bulkApproach() {
+  showToast(`${LEADS.length}名へ一括AIアプローチを実行しました`);
+}
+function recomputeAll() {
+  showToast('全顧客のAIスコアを再計算しました（処理時間: 1.8秒）');
+}
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2500);
+}
+
+/* ============== CHARTS ============== */
+let chartsRendered = false;
+function renderCharts() {
+  if (chartsRendered) return;
+  chartsRendered = true;
+  setTimeout(()=>{
+    new Chart(document.getElementById('revenueChart'),{
+      type:'line',
+      data:{
+        labels:['12月','1月','2月','3月','4月','5月','6月予測','7月予測','8月予測','9月予測','10月予測','11月予測'],
+        datasets:[
+          {label:'実績',data:[480,520,610,580,640,684,null,null,null,null,null,null],borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,.1)',fill:true,tension:.3},
+          {label:'AI導入予測',data:[null,null,null,null,null,684,780,860,930,980,1020,1080],borderColor:'#a855f7',borderDash:[6,4],fill:false,tension:.3},
+          {label:'目標',data:Array(12).fill(1000),borderColor:'#ef4444',borderDash:[2,2],pointRadius:0,fill:false}
+        ]
+      },
+      options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+    });
+    new Chart(document.getElementById('channelChart'),{
+      type:'doughnut',
+      data:{labels:['EC直販','LINE','メール','広告','その他'],datasets:[{data:[42,23,15,12,8],backgroundColor:['#4f46e5','#10b981','#f59e0b','#ec4899','#94a3b8']}]},
+      options:{plugins:{legend:{position:'bottom'}}}
+    });
+  }, 100);
+}
+
+/* ============== INIT ============== */
+renderCustomers();
+renderLeads();
+renderDeals();
+renderTasks();
+renderOrders();
+renderInventory();
+renderCampaigns();
+renderInsights();
+renderApprovals();
+renderAgentLog();
+renderDashboard();
+nav('dashboard');
+</script>
+</body>
+</html>

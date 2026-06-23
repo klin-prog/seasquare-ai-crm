@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>AI×CRM 管理コンソール — シースクエア</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#f7f8fb">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6b5cff"/>
+        <stop offset="1" stop-color="#06a89e"/>
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="800" fill="#f7f8fb"/>
+    <rect x="380" y="240" width="440" height="320" rx="44" fill="url(#g)"/>
+    <text x="600" y="430" font-family="Inter, system-ui, sans-serif" font-size="160" font-weight="700" fill="#ffffff" text-anchor="middle">A×</text>
+    <text x="600" y="640" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="600" fill="#14152a" text-anchor="middle" letter-spacing="2">AI × CRM Console</text>
+    <text x="600" y="690" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="#767c95" text-anchor="middle" letter-spacing="3">読み込み中…</text>
+  </svg>
+</template>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">A×</div>
+      <div style="min-width:0">
+        <div class="brand-name" style="white-space:nowrap">AI×CRM Console</div>
+        <div class="brand-sub">アリオン株式会社</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav"></nav>
+
+    <div class="user-card">
+      <div class="avatar">梶</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-name">梶原（管理者）</div>
+        <div class="user-email">kajiwara@alion.jp</div>
+      </div>
+      <button class="icon-btn" title="設定" onclick="openSettings()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="crumbs" id="crumbs">今日 <span style="opacity:.5;margin:0 6px">/</span> <span class="now">Dashboard</span></div>
+      <div class="search" onclick="openSearchPalette()" style="cursor:pointer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+        <input placeholder="顧客・商品・商談を検索 ..." readonly style="pointer-events:none;cursor:pointer">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="agent-status">
+        <span class="dot"></span>
+        <span style="white-space:nowrap">AI Agent 稼働中 · 4系統</span>
+      </div>
+      <button class="icon-btn" title="通知" onclick="openNotifications()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        <span class="badge-dot">3</span>
+      </button>
+    </header>
+
+    <!-- Content -->
+    <div class="content" id="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="page" id="view-dashboard">
+
+        <!-- AI command strip -->
+        <div class="ai-strip">
+          <div class="ai-strip-l">
+            <div class="ai-strip-eyebrow"><span class="live-dot"></span>AI ・ 本日の活動</div>
+            <div class="ai-strip-h">AI Agent が <span class="num">198 件</span> の処理を実行、<br><b>4 件の提案</b>が承認を待っています。</div>
+            <div class="ai-strip-meta">
+              <div><b class="t">198</b><div>今日の実行</div></div>
+              <div><b class="s">99.4%</b><div>成功率</div></div>
+              <div><b>12.4k</b><div>トークン</div></div>
+              <div><b>¥1,840</b><div>コスト</div></div>
+            </div>
+          </div>
+          <div class="ai-strip-r">
+            <div class="rh">
+              <span>AI Agents 稼働状況</span>
+              <a href="#" onclick="nav('agent-log');return false" class="link">詳細 →</a>
+            </div>
+            <div class="agent-mini" id="ai-hero-agents"></div>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <div>
+            <div class="page-title">おはようございます、梶原さん</div>
+            <div class="page-sub">2026/05/20 木曜日 ・ 今日のダッシュボード</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="refreshDashboard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8"/></svg> 更新</button>
+            <button class="btn primary" onclick="openNewTaskModal()">＋ 新規アクション</button>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-grid" id="kpis" style="margin-bottom:22px"></div>
+
+        <!-- AI Agent live + summary -->
+        <div class="agent-stream" style="margin-bottom:22px">
+          <div class="card ai-stream-card">
+            <div class="card-head">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="pulse-ring"></span>
+                <div>
+                  <div class="card-title">AI Agent ライブ実行ストリーム</div>
+                  <div class="card-sub">MCP ツール呼び出し ・ リアルタイム</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <select class="select" style="height:28px" onchange="filterStream(this.value)"><option>全エージェント</option><option>接客AI</option><option>営業AI</option><option>在庫AI</option></select>
+                <a href="#" onclick="nav('agent-log');return false" class="link">全ログを見る →</a>
+              </div>
+            </div>
+            <div id="agent-stream"></div>
+          </div>
+
+          <div class="card ai-rec-card">
+            <div class="card-head">
+              <div>
+                <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                  <span style="color:var(--accent-hi)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg></span>
+                  AI 推奨アクション
+                </div>
+                <div class="card-sub">今すぐ実行できる提案</div>
+              </div>
+              <a href="#" onclick="nav('approvals');return false" class="link">承認待ち 4件 →</a>
+            </div>
+            <div id="agents-summary"></div>
+          </div>
+        </div>
+
+        <!-- AI insights big block -->
+        <div class="card" style="margin-bottom:22px">
+          <div class="card-head">
+            <div>
+              <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                <span style="color:var(--accent-hi)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg></span>
+                本日のAI提案（要アクション）
+              </div>
+              <div class="card-sub">BigQuery 集計から AI が抽出した本日のアクション</div>
+            </div>
+            <a href="#" onclick="nav('insights');return false" class="link">すべての提案 →</a>
+          </div>
+          <div id="dash-insights" style="padding:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+
+        <!-- Two-column: tasks + hot leads -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">受信箱（優先タスク）</div>
+              <a href="#" onclick="nav('tasks');return false" class="link">すべて見る →</a>
+            </div>
+            <div id="dash-tasks"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">ホットリード TOP 5</div>
+              <a href="#" onclick="nav('leads');return false" class="link">すべて見る →</a>
+            </div>
+            <div id="dash-leads"></div>
+          </div>
+        </div>
+
+        <!-- Revenue + channel -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+          <div class="card pad">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+              <div>
+                <div class="card-title">月商推移 vs 目標</div>
+                <div class="card-sub">実績 / AI 予測 / 目標ライン</div>
+              </div>
+              <select class="select" style="height:28px"><option>過去12ヶ月</option><option>過去6ヶ月</option></select>
+            </div>
+            <div style="height:240px"><canvas id="revenueChart"></canvas></div>
+          </div>
+          <div class="card pad">
+            <div class="card-title" style="margin-bottom:14px">チャネル別売上構成</div>
+            <div style="height:240px"><canvas id="channelChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TASKS ============ -->
+      <section class="page" id="view-tasks">
+        <div class="page-head">
+          <div>
+            <div class="page-title">受信箱</div>
+            <div class="page-sub">AI が自動生成したタスク + 手動タスク</div>
+          </div>
+          <button class="btn primary" onclick="openNewTaskModal()">＋ タスク作成</button>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTaskTab(this,'未対応')">未対応 <span class="ct">12</span></button>
+          <button class="tab" onclick="switchTaskTab(this,'対応中')">対応中 <span class="ct">4</span></button>
+          <button class="tab" onclick="switchTaskTab(this,'完了')">完了 <span class="ct">38</span></button>
+          <button class="tab" onclick="switchTaskTab(this,'すべて')">すべて</button>
+        </div>
+
+        <div class="card">
+          <div id="tasks-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ APPROVALS ============ -->
+      <section class="page" id="view-approvals">
+        <div class="page-head">
+          <div>
+            <div class="page-title">AI 承認待ち</div>
+            <div class="page-sub">AI が提案・実行を保留している項目。承認すると AI Agent が自動実行します。</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost" onclick="bulkRejectAll()">一括却下</button>
+            <button class="btn primary" onclick="bulkApproveAll()">すべて承認</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="approvals-table">
+              <thead><tr>
+                <th>種別</th><th>内容</th><th>対象</th><th>予測効果</th><th>リスク</th><th>AI 根拠</th><th>起票</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DEALS ============ -->
+      <section class="page" id="view-deals">
+        <div class="page-head">
+          <div>
+            <div class="page-title">商談パイプライン</div>
+            <div class="page-sub">月内見込 ¥4,820,000 ・ AI 自動生成 36 件 / 手動 12 件</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn ghost" style="background:var(--surface);border-color:var(--border)" onclick="toast('ボード表示中')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg> ボード</button>
+            <button class="btn ghost" onclick="toast('リスト表示は今後提供予定')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg> リスト</button>
+            <button class="btn primary" onclick="openNewDealModal()">＋ 商談作成</button>
+          </div>
+        </div>
+
+        <div class="kanban" id="deals-board"></div>
+      </section>
+
+      <!-- ============ CUSTOMERS ============ -->
+      <section class="page" id="view-customers">
+        <div class="page-head">
+          <div>
+            <div class="page-title">顧客一覧</div>
+            <div class="page-sub">Oracle DB 連携 ・ 全 5,432 件</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="exportCSV('顧客一覧')">CSV 出力</button>
+            <button class="btn primary" onclick="openNewCustomerModal()">＋ 新規顧客</button>
+          </div>
+        </div>
+
+        <div class="filterbar">
+          <input class="input" placeholder="顧客名・メール・電話 ..." style="flex:1;min-width:200px">
+          <select class="select"><option>全セグメント</option><option>新規</option><option>リピート</option><option>VIP</option><option>休眠</option></select>
+          <select class="select"><option>LTV スコア</option><option>高 (80+)</option><option>中 (50-79)</option><option>低</option></select>
+          <select class="select"><option>登録チャネル</option><option>EC</option><option>LINE</option><option>店舗</option></select>
+          <button class="btn primary" onclick="applyCustomerFilter()">適用</button>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="customers-table">
+              <thead><tr>
+                <th style="width:32px"><input type="checkbox" class="checkbox"></th>
+                <th>顧客 ID</th><th>氏名</th><th>セグメント</th><th>LTV 予測</th>
+                <th>最終購入</th><th>累計</th><th>チャネル</th><th>AI スコア</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <span>1 — 12 / 5,432 件</span>
+            <div class="pages">
+              <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ LEADS ============ -->
+      <section class="page" id="view-leads">
+        <div class="page-head">
+          <div>
+            <div class="page-title">見込客（リード）</div>
+            <div class="page-sub">AI スコアリング ・ 行動 × 購買履歴 × LTV 予測</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="recalcLeadScore()">スコア再計算</button>
+            <button class="btn ai" onclick="bulkAIApproach()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg> AI 一括アプローチ</button>
+          </div>
+        </div>
+
+        <div class="tile-grid" style="margin-bottom:14px">
+          <div class="tile"><div class="lab">スコア 90+</div><div class="val" style="color:var(--danger)">3 名</div></div>
+          <div class="tile"><div class="lab">スコア 80-89</div><div class="val" style="color:var(--warn)">1 名</div></div>
+          <div class="tile"><div class="lab">スコア 70-79</div><div class="val" style="color:var(--success)">3 名</div></div>
+          <div class="tile"><div class="lab">未アプローチ</div><div class="val">5 名</div></div>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="leads-table">
+              <thead><tr>
+                <th style="width:32px"><input type="checkbox" class="checkbox"></th>
+                <th>顧客</th><th>スコア</th><th>セグメント</th><th>直近行動</th>
+                <th>AI 推奨アクション</th><th>予測売上</th><th>チャネル</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CAMPAIGNS ============ -->
+      <section class="page" id="view-campaigns">
+        <div class="page-head">
+          <div>
+            <div class="page-title">キャンペーン</div>
+            <div class="page-sub">LINE / メール 一括配信 ・ AI 自動生成キャンペーン</div>
+          </div>
+          <button class="btn primary" onclick="openNewCampaignModal()">＋ 新規キャンペーン</button>
+        </div>
+
+        <div class="tile-grid" style="margin-bottom:14px">
+          <div class="tile"><div class="lab">配信中</div><div class="val" style="color:var(--success)">3</div></div>
+          <div class="tile"><div class="lab">予約中</div><div class="val" style="color:var(--warn)">2</div></div>
+          <div class="tile"><div class="lab">下書き</div><div class="val">4</div></div>
+          <div class="tile"><div class="lab">今月成果</div><div class="val" style="color:var(--accent-hi)">¥1.2M</div></div>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="campaigns-table">
+              <thead><tr>
+                <th>キャンペーン名</th><th>チャネル</th><th>対象</th>
+                <th>開封率</th><th>CTR</th><th>CV</th><th>売上貢献</th><th>ステータス</th><th>作成者</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ORDERS ============ -->
+      <section class="page" id="view-orders">
+        <div class="page-head">
+          <div>
+            <div class="page-title">受注管理</div>
+            <div class="page-sub">今月 168 件 / ¥6,840,000</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="exportCSV('受注一覧')">CSV 出力</button>
+            <button class="btn" onclick="printOrderLabels()">配送伝票印刷</button>
+          </div>
+        </div>
+
+        <div class="tile-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
+          <div class="tile"><div class="lab">新規注文</div><div class="val">14</div></div>
+          <div class="tile"><div class="lab">出荷準備中</div><div class="val" style="color:var(--warn)">8</div></div>
+          <div class="tile"><div class="lab">出荷済</div><div class="val" style="color:var(--info)">23</div></div>
+          <div class="tile"><div class="lab">配送完了</div><div class="val" style="color:var(--success)">119</div></div>
+          <div class="tile"><div class="lab">キャンセル</div><div class="val" style="color:var(--text-mute)">4</div></div>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="orders-table">
+              <thead><tr>
+                <th>注文番号</th><th>日時</th><th>顧客</th><th>商品</th>
+                <th>金額</th><th>支払</th><th>ステータス</th><th>AI 接客</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INVENTORY ============ -->
+      <section class="page" id="view-inventory">
+        <div class="page-head">
+          <div>
+            <div class="page-title">在庫・商品</div>
+            <div class="page-sub">登録商品 248 点 ・ 3D 対応 142 点 / AR 対応 98 点</div>
+          </div>
+          <button class="btn primary" onclick="openNewProductModal()">＋ 商品追加</button>
+        </div>
+
+        <div class="card" style="background:rgba(225,29,72,.05);border-color:rgba(225,29,72,.22);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(225,29,72,.12);display:grid;place-items:center;color:var(--danger)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17v.01"/><path d="M10.3 3.6 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0z"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13.5px;font-weight:600;color:var(--danger)">在庫切迫アラート 3 件</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">AI が発注タイミングを提案中。「AI 提案」メニューから確認できます。</div>
+          </div>
+          <button class="btn danger sm" onclick="showInventoryAlert()">確認する</button>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="inventory-table">
+              <thead><tr>
+                <th>SKU</th><th>商品名</th><th>カテゴリ</th><th>価格</th>
+                <th>在庫</th><th>今月閲覧</th><th>CVR</th><th>3D / AR</th><th>AI 推奨</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INSIGHTS ============ -->
+      <section class="page" id="view-insights">
+        <div class="page-head">
+          <div>
+            <div class="page-title">AI 提案</div>
+            <div class="page-sub">BigQuery 集計データを基に AI が本日のアクションを提案します</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="select"><option>すべて</option><option>営業</option><option>在庫</option><option>マーケ</option></select>
+            <button class="btn" onclick="regenerateInsights()">再生成</button>
+          </div>
+        </div>
+        <div id="insights-list" style="display:flex;flex-direction:column;gap:12px"></div>
+      </section>
+
+      <!-- ============ AGENT LOG ============ -->
+      <section class="page" id="view-agent-log">
+        <div class="page-head">
+          <div>
+            <div class="page-title">AI 実行ログ</div>
+            <div class="page-sub">AI Agent の全実行履歴（監査用）</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="select"><option>全エージェント</option><option>接客AI</option><option>営業AI</option><option>在庫AI</option></select>
+            <input type="date" value="2026-05-20" class="input">
+            <button class="btn" onclick="exportCSV('AI実行ログ')">CSV エクスポート</button>
+          </div>
+        </div>
+
+        <div class="tile-grid" style="margin-bottom:14px">
+          <div class="tile"><div class="lab">今日の実行</div><div class="val">198</div></div>
+          <div class="tile"><div class="lab">成功率</div><div class="val" style="color:var(--success)">99.4%</div></div>
+          <div class="tile"><div class="lab">トークン使用</div><div class="val">12.4k</div></div>
+          <div class="tile"><div class="lab">想定コスト</div><div class="val">¥1,840</div></div>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl" id="agent-log-table">
+              <thead><tr>
+                <th>時刻</th><th>エージェント</th><th>ツール</th><th>入力</th>
+                <th>結果</th><th>所要</th><th>トークン</th><th>ステータス</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ REPORTS ============ -->
+      <section class="page" id="view-reports">
+        <div class="page-head">
+          <div>
+            <div class="page-title">レポート</div>
+            <div class="page-sub">月次・カスタムレポートを生成</div>
+          </div>
+          <button class="btn primary" onclick="toast('カスタムレポート作成画面を開きます')">＋ カスタム作成</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+          <div class="card pad" style="cursor:pointer;transition:all .15s" onclick="openReport('月次売上レポート')" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(20,21,42,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--accent-bg);color:var(--accent-hi);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">月次売上レポート</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">毎月 1 日に AI が自動生成</div>
+          </div>
+          <div class="card pad" style="cursor:pointer" onclick="openReport('商談 AI スコアリング分析')">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--ai-bg);color:var(--ai);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">商談 AI スコアリング分析</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">スコア予測精度・適合率</div>
+          </div>
+          <div class="card pad" style="cursor:pointer" onclick="openReport('キャンペーン効果分析')">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--info-bg);color:var(--info);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">キャンペーン効果分析</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">LINE・メール比較</div>
+          </div>
+          <div class="card pad" style="cursor:pointer" onclick="openReport('CV 経路分析')">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--warn-bg);color:var(--warn);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h12v9H3z"/><path d="M15 10h4l2 3v3h-6"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">CV 経路分析</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">流入から購入までの動線</div>
+          </div>
+          <div class="card pad" style="cursor:pointer" onclick="openReport('商品売れ筋・滞留')">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--success-bg);color:var(--success);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">商品売れ筋・滞留</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">在庫回転率レポート</div>
+          </div>
+          <div class="card pad" style="cursor:pointer" onclick="openReport('LTV コホート分析')">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--danger-bg);color:var(--danger);display:grid;place-items:center;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21V3l18 9z"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600">LTV コホート分析</div>
+            <div style="font-size:11.5px;color:var(--text-mute);margin-top:4px">獲得月別の累計購入額</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ANALYTICS ============ -->
+      <section class="page" id="view-analytics">
+        <div class="page-head">
+          <div>
+            <div class="page-title">BigQuery 分析</div>
+            <div class="page-sub">統合 DWH に対して SQL クエリ・自然言語問合せを実行</div>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-bottom:14px;background:linear-gradient(135deg,rgba(107,92,255,.06),rgba(6,168,158,.04));border-color:var(--accent-border)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="color:var(--accent-hi)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg></span>
+            <div class="card-title">AI に自然言語で質問する</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="input" placeholder="例: 今週ソファカテゴリで一番閲覧された商品 TOP 3 を教えて" style="flex:1;height:38px">
+            <button class="btn primary lg" onclick="runAnalyticsQuery()">分析する</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-mute);margin-top:8px">AI が SQL を生成して BigQuery に問合せます</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">直近のクエリ</div></div>
+          <div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);margin-bottom:6px"><span style="color:var(--accent-hi)">SELECT</span> category, <span style="color:var(--ai)">SUM</span>(views) <span style="color:var(--accent-hi)">FROM</span> access_logs <span style="color:var(--accent-hi)">WHERE</span> date &gt;= '2026-05-13' <span style="color:var(--accent-hi)">GROUP BY</span> category</div>
+              <div style="font-size:11px;color:var(--text-mute)">梶原 ・ 5/19 14:23 ・ 3.2 秒 ・ 12,438 行スキャン</div>
+            </div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);margin-bottom:6px"><span style="color:var(--accent-hi)">SELECT</span> customer_id, <span style="color:var(--ai)">SUM</span>(amount) <span style="color:var(--accent-hi)">FROM</span> deals <span style="color:var(--accent-hi)">WHERE</span> stage='won' <span style="color:var(--accent-hi)">GROUP BY</span> customer_id <span style="color:var(--accent-hi)">ORDER BY</span> 2 <span style="color:var(--accent-hi)">DESC LIMIT</span> 100</div>
+              <div style="font-size:11px;color:var(--text-mute)"><span class="badge b-ai">営業AI</span> 5/19 09:00 ・ 1.8 秒 ・ 4,820 行スキャン</div>
+            </div>
+            <div style="padding:14px 18px">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);margin-bottom:6px"><span style="color:var(--text-mute)">-- AI が生成（在庫予測）</span><br><span style="color:var(--accent-hi)">WITH</span> velocity <span style="color:var(--accent-hi)">AS</span> ( ... )</div>
+              <div style="font-size:11px;color:var(--text-mute)"><span class="badge b-ai">在庫AI</span> 5/19 06:00 ・ 5.4 秒 ・ 88,452 行スキャン</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INTEGRATIONS ============ -->
+      <section class="page" id="view-integrations">
+        <div class="page-head">
+          <div>
+            <div class="page-title">連携・API</div>
+            <div class="page-sub">外部システム接続状況</div>
+          </div>
+          <button class="btn" onclick="newConnection()">＋ 新規接続</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('Oracle Database')">
+            <div class="top">
+              <div class="icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.6 3.6 3 8 3s8-1.4 8-3V5"/></svg></div>
+              <div style="flex:1"><h4>Oracle Database (AWS)</h4><p>既存資産・顧客 / 商品 / 実例</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>最終同期 09:42</span><span>5,432 件</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('BigQuery')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--info)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg></div>
+              <div style="flex:1"><h4>BigQuery</h4><p>統合 DWH</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>テーブル 24 個</span><span>8.4 TB</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('Google Analytics 4')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--warn)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 8v4M12 16v.01"/><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/></svg></div>
+              <div style="flex:1"><h4>Google Analytics 4</h4><p>アクセス・行動データ</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>BQ Export 有効</span><span>—</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('Anthropic Claude API')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--accent-hi)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/></svg></div>
+              <div style="flex:1"><h4>Anthropic Claude API</h4><p>AI Agent</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>今月 1.2M tokens</span><span>¥143,000</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('LINE Messaging API')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--success)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v12H8l-5 4z"/></svg></div>
+              <div style="flex:1"><h4>LINE Messaging API</h4><p>顧客チャネル</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>登録ユーザー</span><span>2,318 名</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('MCP サーバー')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--ai)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div>
+              <div style="flex:1"><h4>MCP サーバー</h4><p>AI ⇔ DB 統合 IF</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>稼働中</span>
+            </div>
+            <div class="meta"><span>登録ツール 6 個</span><span>—</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('Google レコメンドエンジン')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--info)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg></div>
+              <div style="flex:1"><h4>Google レコメンドエンジン</h4><p>商品レコメンド</p></div>
+              <span class="badge b-success"><span class="b-dot"></span>接続済</span>
+            </div>
+            <div class="meta"><span>—</span><span>—</span></div>
+          </div>
+          <div class="intg" style="cursor:pointer" onclick="openIntegrationDetail('SendGrid')">
+            <div class="top">
+              <div class="icon-box" style="color:var(--warn)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg></div>
+              <div style="flex:1"><h4>SendGrid (メール配信)</h4><p>トランザクション・キャンペーン</p></div>
+              <span class="badge b-warn">設定中</span>
+            </div>
+            <div class="meta"><span>—</span><span><a href="#" class="link">続行 →</a></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ USERS ============ -->
+      <section class="page" id="view-users">
+        <div class="page-head">
+          <div>
+            <div class="page-title">ユーザー・権限</div>
+            <div class="page-sub">メンバー 4 名 ・ AI 実行権限の管理</div>
+          </div>
+          <button class="btn primary" onclick="openNewUserModal()">＋ ユーザー追加</button>
+        </div>
+
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th>氏名</th><th>メール</th><th>権限</th><th>最終ログイン</th><th>AI 実行権限</th><th>ステータス</th><th></th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">梶</div><span style="font-weight:500">梶原</span></div></td>
+                  <td class="cell-mute">kajiwara@alion.jp</td>
+                  <td><span class="badge b-accent">管理者</span></td>
+                  <td class="cell-mute">5/20 09:30</td>
+                  <td><span style="color:var(--success);font-size:12px">すべて</span></td>
+                  <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
+                  <td><button class="btn ghost sm" onclick="openUserEdit('梶原')">編集</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">山</div><span style="font-weight:500">山田（営業）</span></div></td>
+                  <td class="cell-mute">yamada@alion.jp</td>
+                  <td><span class="badge b-info">営業</span></td>
+                  <td class="cell-mute">5/20 08:15</td>
+                  <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
+                  <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
+                  <td><button class="btn ghost sm" onclick="openUserEdit('山田（営業）')">編集</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">鈴</div><span style="font-weight:500">鈴木（CS）</span></div></td>
+                  <td class="cell-mute">suzuki@alion.jp</td>
+                  <td><span class="badge b-warn">CS</span></td>
+                  <td class="cell-mute">5/19 18:42</td>
+                  <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
+                  <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
+                  <td><button class="btn ghost sm" onclick="openUserEdit('鈴木（CS）')">編集</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">田</div><span style="font-weight:500">田中（開発）</span></div></td>
+                  <td class="cell-mute">tanaka@alion.jp</td>
+                  <td><span class="badge b-neutral">開発</span></td>
+                  <td class="cell-mute">5/20 02:11</td>
+                  <td><span style="color:var(--success);font-size:12px">すべて</span></td>
+                  <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
+                  <td><button class="btn ghost sm" onclick="openUserEdit('田中（開発）')">編集</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="card-title" id="drawer-title">詳細</div>
+    <button class="icon-btn" onclick="closeDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+<script src="details.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>
