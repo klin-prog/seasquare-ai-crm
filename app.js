@@ -137,7 +137,7 @@ function priorityChip(p) {
   return `<span class="badge ${m[p]}">${p}</span>`;
 }
 function chBadge(c) {
-  const m = { 'LINE':'b-success','メール':'b-info','電話':'b-warn','チャット':'b-accent','EC':'b-info','店舗':'b-neutral','広告':'b-warn' };
+  const m = { 'LINE':'b-success','メール':'b-info','SMS':'b-warn','電話':'b-warn','チャット':'b-accent','EC':'b-info','店舗':'b-neutral','広告':'b-warn' };
   return `<span class="badge ${m[c]||'b-neutral'}">${c}</span>`;
 }
 function fsegBadge(s) {

@@ -977,3 +977,8 @@ textarea.input { height: auto; }
 .ai-chat-input { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--border); }
 .ai-chat-input input { flex: 1; height: 34px; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font-size: 12.5px; background: var(--surface); color: var(--text); outline: none; }
 .ai-chat-input input:focus { border-color: var(--accent); }
+
+/* ===== Channel selector (multi-channel, 商談要求) ===== */
+.ch-select { display: flex; gap: 8px; flex-wrap: wrap; }
+.ch-opt { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mute); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.ch-opt.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-hi); }

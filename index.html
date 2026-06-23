@@ -341,9 +341,12 @@
         <div class="page-head">
           <div>
             <div class="page-title">キャンペーン</div>
-            <div class="page-sub">LINE / メール 一括配信 ・ AI 自動生成キャンペーン</div>
+            <div class="page-sub">LINE / メール / SMS 一括配信 ・ AI 自動生成キャンペーン</div>
           </div>
-          <button class="btn primary" onclick="openNewCampaignModal()">＋ 新規キャンペーン</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="openEmailTemplates()">メールテンプレート</button>
+            <button class="btn primary" onclick="openNewCampaignModal()">＋ 新規キャンペーン</button>
+          </div>
         </div>
 
         <div class="tile-grid" style="margin-bottom:14px">
@@ -631,6 +634,17 @@
             <div class="page-sub">外部システム接続状況</div>
           </div>
           <button class="btn" onclick="newConnection()">＋ 新規接続</button>
+        </div>
+
+        <div class="card pad" style="margin-bottom:14px;background:linear-gradient(135deg,var(--accent-bg),var(--ai-bg));border-color:var(--accent-border);display:flex;align-items:center;gap:14px">
+          <div style="width:42px;height:42px;border-radius:11px;background:var(--bg-elev);display:grid;place-items:center;color:var(--success);flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">既存DB・APIと連携済 — リプレイス不要でAIを追加</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:3px">Oracle DB / BigQuery / GA4 / LINE / MCP など現行システムはそのまま。AI Agent が上に乗るだけで導入でき、置き換えコストがかかりません。</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0"><div style="font-size:22px;font-weight:700;color:var(--success)">7<span style="font-size:13px;color:var(--text-mute)">/8</span></div><div style="font-size:11px;color:var(--text-mute)">接続済</div></div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">

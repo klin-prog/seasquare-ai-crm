@@ -227,7 +227,16 @@ function openNewCampaignModal() {
     body: `
       <div style="display:flex;flex-direction:column;gap:12px">
         <label class="form-row"><span class="form-lab">名称</span><input class="input" style="flex:1"></label>
-        <label class="form-row"><span class="form-lab">チャネル</span><select class="select" style="flex:1"><option>LINE</option><option>メール</option><option>両方</option></select></label>
+        <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:6px">配信チャネル</span>
+          <div style="flex:1">
+            <div class="ch-select">
+              <button type="button" class="ch-opt active" data-ch="LINE" data-reach="2318" onclick="toggleCh(this)">${Icon('line',13)} LINE</button>
+              <button type="button" class="ch-opt active" data-ch="メール" data-reach="1442" onclick="toggleCh(this)">${Icon('mail',13)} メール</button>
+              <button type="button" class="ch-opt" data-ch="SMS" data-reach="860" onclick="toggleCh(this)">${Icon('chat',13)} SMS</button>
+            </div>
+            <div id="ch-summary" style="font-size:11px;color:var(--text-mute);margin-top:7px"></div>
+          </div>
+        </label>
         <label class="form-row"><span class="form-lab">対象</span><select class="select" style="flex:1"><option>全員</option><option>VIP</option><option>休眠</option><option>新規</option></select></label>
         <label class="form-row"><span class="form-lab">配信日時</span><input class="input" type="datetime-local" style="flex:1"></label>
         <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:8px">内容</span><textarea class="input" rows="4" style="flex:1;padding:8px 11px;resize:vertical" placeholder="メッセージ内容 ..."></textarea></label>
@@ -243,6 +252,15 @@ function openNewCampaignModal() {
       <button class="btn primary" onclick="toast('キャンペーンを予約配信');closeModal()">予約配信</button>
     `,
   });
+  updateChSummary();
+}
+function toggleCh(btn) { btn.classList.toggle('active'); updateChSummary(); }
+function updateChSummary() {
+  const el = document.getElementById('ch-summary'); if (!el) return;
+  const sel = [...document.querySelectorAll('.ch-select .ch-opt.active')];
+  if (!sel.length) { el.innerHTML = '<span style="color:var(--danger)">チャネルを1つ以上選択してください</span>'; return; }
+  const reach = sel.reduce((s, b) => s + (+b.dataset.reach || 0), 0);
+  el.innerHTML = `選択: ${sel.map(b => b.dataset.ch).join(' / ')} ・ 推定リーチ <b>${reach.toLocaleString()}</b> 名`;
 }
 
 function openNewProductModal() {
@@ -626,6 +644,54 @@ function aiReply(q) {
   return `売上・在庫・休眠顧客・承認待ち・リード などについてお答えできます。例:「今月の売上は？」「在庫が少ない商品は？」`;
 }
 
+/* ===== メールテンプレート（HTMLメール / ステップメール） ===== */
+const EMAIL_TEMPLATES = [
+  { name:'新商品案内',       accent:'#6b5cff', heading:'新作ソファ、入荷しました', body:'お部屋になじむナチュラルテイストの新作が登場。AR で“今の”お部屋に試し置きできます。', cta:'AR で見てみる' },
+  { name:'セール告知',       accent:'#e11d48', heading:'今週末まで 10%OFF', body:'人気の家具がお得に。この機会にお部屋づくりをお楽しみください。', cta:'セール商品を見る' },
+  { name:'休眠リエンゲージ', accent:'#d97706', heading:'お久しぶりです。新しいご提案があります', body:'以前ご覧いただいた商品と相性の良い新作をご用意しました。', cta:'おすすめを見る' },
+  { name:'ウェルカム',       accent:'#06a89e', heading:'ご登録ありがとうございます', body:'はじめてのお買い物に使える 10%OFF クーポンをお届けします。', cta:'クーポンを使う' },
+];
+let emailTpl = 0;
+function emailTplBody() {
+  const t = EMAIL_TEMPLATES[emailTpl];
+  const steps = [['Day 0','ウェルカム + 10%OFFクーポン','メール'],['Day 3','閲覧商品のリマインド + AR','LINE'],['Day 7','コーディネート提案','メール'],['Day 30','再来訪クーポン','SMS']];
+  return `
+    <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">HTMLメールテンプレート</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${EMAIL_TEMPLATES.map((x, i) => `<button class="btn ${i===emailTpl?'primary':''} sm" onclick="selectEmailTpl(${i})">${x.name}</button>`).join('')}
+    </div>
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:420px;margin:0 auto;background:#ffffff;box-shadow:var(--shadow-1)">
+      <div style="height:8px;background:${t.accent}"></div>
+      <div style="padding:18px 20px">
+        <div style="font-size:12px;color:#8a90a6;margin-bottom:10px">シースクエア株式会社</div>
+        <div style="height:120px;border-radius:8px;background:linear-gradient(160deg,#eef1f8,#e3e7f2);display:grid;place-items:center;color:${t.accent};margin-bottom:14px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg></div>
+        <div style="font-size:17px;font-weight:700;color:#14152a;line-height:1.4">${t.heading}</div>
+        <div style="font-size:13px;color:#4a4f6a;line-height:1.7;margin:10px 0 16px">${t.body}</div>
+        <div style="text-align:center"><span style="display:inline-block;background:${t.accent};color:#fff;font-weight:600;font-size:13px;padding:10px 22px;border-radius:8px">${t.cta}</span></div>
+        <div style="font-size:10.5px;color:#a4a8bd;text-align:center;margin-top:18px;border-top:1px solid #ebedf3;padding-top:12px">© シースクエア株式会社 ・ <span style="text-decoration:underline">配信停止</span></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin:20px 0 10px">ステップメール（自動連載）</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${steps.map(([d, s, ch]) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;font-size:12.5px">
+          <span style="min-width:54px;text-align:center;font-weight:700;color:var(--accent-hi);font-size:11px;background:var(--accent-bg);border-radius:6px;padding:3px 6px">${d}</span>
+          <span style="flex:1">${s}</span>
+          <span class="badge ${ch==='LINE'?'b-success':ch==='メール'?'b-info':'b-warn'}">${ch}</span>
+        </div>`).join('')}
+    </div>`;
+}
+function selectEmailTpl(i) { emailTpl = i; const b = document.querySelector('#__modal .modal-body'); if (b) b.innerHTML = emailTplBody(); }
+function openEmailTemplates() {
+  emailTpl = 0;
+  openModal({
+    title: 'メールテンプレート', subtitle: 'HTMLメール / ステップメール', size: 'lg',
+    icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--info-bg);color:var(--info);display:grid;place-items:center">${Icon('mail',18)}</div>`,
+    body: emailTplBody(),
+    footer: `<button class="btn ghost" onclick="closeModal()">閉じる</button><button class="btn primary" onclick="toast('このテンプレートで作成します');closeModal()">このテンプレで作成</button>`,
+  });
+}
+
 /* ===== オンボーディング・ツアー ===== */
 const TOUR = [
   { icon:'sparkles', title:'ようこそ、AI×CRM コンソールへ', body:'家具ECに特化した AI×CRM のデモです。AIエージェントが顧客対応・営業・在庫を自動化し、人は承認するだけ。' },
@@ -656,6 +722,7 @@ function finishTour() { try { localStorage.setItem('seasquare_onboarded', '1'); 
 Object.assign(window, {
   toggleAIChat, aiChatSend, aiAsk, searchPalette,
   showOnboarding, tourNav, finishTour,
+  toggleCh, updateChSummary, openEmailTemplates, selectEmailTpl,
   openSettings, openNotifications, openSearchPalette,
   openNewTaskModal, openNewCustomerModal, openNewDealModal,
   openNewCampaignModal, openNewProductModal, openNewUserModal,
