@@ -355,6 +355,30 @@
         </div>
       </section>
 
+      <!-- ============ WORKFLOWS ============ -->
+      <section class="page" id="view-workflows">
+        <div class="page-head">
+          <div>
+            <div class="page-title">ワークフロー</div>
+            <div class="page-sub">トリガー駆動の自動シナリオ ・ キャンペーン（一括・期間）とは別管理</div>
+          </div>
+          <button class="btn primary" onclick="toast('ワークフロー作成ウィザードを開きます')">＋ ワークフロー作成</button>
+        </div>
+        <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;margin-bottom:16px">
+          <div class="card"><div id="wf-list"></div></div>
+          <div class="card pad"><div id="wf-canvas"></div></div>
+        </div>
+        <div class="card pad">
+          <div class="card-head" style="padding:0 0 14px">
+            <div>
+              <div class="card-title">効果指標（時系列）</div>
+              <div class="card-sub">CV率 / 開封率 / 配信解除率 ・ 直近8週</div>
+            </div>
+          </div>
+          <div style="height:240px"><canvas id="funnelChart"></canvas></div>
+        </div>
+      </section>
+
       <!-- ============ ORDERS ============ -->
       <section class="page" id="view-orders">
         <div class="page-head">

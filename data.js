@@ -126,11 +126,16 @@ window.DATA = {
     {icon:'mail',title:'休眠顧客リエンゲージキャンペーン',detail:'180日以上購入なしの48名のうち、過去にラグ・カーテンを購入した32名にリピート提案。',impact:'予測CV: 6件 / +¥180,000',cta:'承認・実行'},
   ],
 
+  // draft = AI が生成した下書き本文（承認モーダルで編集可能・item 13）
   APPROVALS: [
-    {kind:'メール一括送付',content:'休眠顧客32名へリピート提案',target:'32名',impact:'+¥180,000',reason:'180日以上未購入 & 過去ラグ・カーテン購入歴',time:'09:32',risk:'低'},
-    {kind:'商品ラインナップ',content:'在宅ワーク向けデスクライト 3SKU 企画',target:'-',impact:'+¥320,000/月',reason:'GA4検索ログ 423件',time:'08:14',risk:'中'},
-    {kind:'値引きクーポン',content:'伊藤 拓海さまへ初回10%OFF',target:'伊藤 拓海',impact:'+¥36,000',reason:'広告経由・スコア急上昇',time:'07:48',risk:'低'},
-    {kind:'発注書ドラフト',content:'ナチュラルウッドダイニング 20点',target:'メーカーA',impact:'-',reason:'在庫切迫AI予測',time:'06:00',risk:'高'},
+    {kind:'メール一括送付',content:'休眠顧客32名へリピート提案',target:'32名',impact:'+¥180,000',reason:'180日以上未購入 & 過去ラグ・カーテン購入歴',time:'09:32',risk:'低',
+      draft:'ご無沙汰しております。以前お選びいただいたラグ・カーテンと相性の良い新作が入荷しました。\nAR で“今の”お部屋に合わせたイメージをその場でご確認いただけます。\n▶ AR で見てみる'},
+    {kind:'商品ラインナップ',content:'在宅ワーク向けデスクライト 3SKU 企画',target:'-',impact:'+¥320,000/月',reason:'GA4検索ログ 423件',time:'08:14',risk:'中',
+      draft:'【企画ドラフト】在宅ワーク向け「デスクライト」カテゴリを新設。\n初期3SKU（調光LED / クランプ式 / 充電式）。想定粗利率28%、月間貢献 +¥320,000。\n仕入先候補2社に見積依頼済み。'},
+    {kind:'値引きクーポン',content:'伊藤 拓海さまへ初回10%OFF',target:'伊藤 拓海',impact:'+¥36,000',reason:'広告経由・スコア急上昇',time:'07:48',risk:'低',
+      draft:'伊藤さま、はじめまして。\n気になる商品はございましたか？ 初めてのお買い物に使える 10%OFF クーポンをお届けします。\nこの機会にぜひお部屋づくりをお楽しみください。'},
+    {kind:'発注書ドラフト',content:'ナチュラルウッドダイニング 20点',target:'メーカーA',impact:'-',reason:'在庫切迫AI予測',time:'06:00',risk:'高',
+      draft:'発注書（ドラフト）\n品目：ナチュラルウッド ダイニングテーブル × 20点\n発注先：メーカーA／希望納期：5/30\n根拠：直近7日で閲覧+88%、在庫残3点。'},
   ],
 
   AGENT_LOG: [
@@ -163,4 +168,43 @@ window.DATA = {
       {c:'山口 凛',t:'照明セット',a:88000,src:'AI'},
     ]},
   ],
+
+  // ワークフロー = トリガー駆動の自動シナリオ（キャンペーンの一括配信とは別管理・item 14）
+  // node.type: trigger / send / wait / branch / goal（WF図に描画・item 12a）
+  WORKFLOWS: [
+    {id:'wf-hot', name:'高スコア見込客フォロー', trigger:'AIスコア ≥ 85 到達', status:'稼働中', enrolled:128, cvr:'12.4%', nodes:[
+      {type:'trigger', label:'AIスコア 85 到達'},
+      {type:'send',    label:'Day0: AR体験リンクを送付（LINE）'},
+      {type:'wait',    label:'3日待機'},
+      {type:'branch',  label:'AR を閲覧した？'},
+      {type:'send',    label:'Yes → 3Dコーデ提案 / No → 実例カタログ'},
+      {type:'wait',    label:'Day7 まで待機'},
+      {type:'send',    label:'Day7: 期間限定クーポン + 設置事例'},
+      {type:'goal',    label:'CV（受注）'},
+    ]},
+    {id:'wf-dormant', name:'休眠リアクティベーション', trigger:'最終購入から 365 日経過', status:'稼働中', enrolled:480, cvr:'4.2%', nodes:[
+      {type:'trigger', label:'最終購入 365 日経過'},
+      {type:'send',    label:'Day0: 「お久しぶり」クーポン（メール）'},
+      {type:'wait',    label:'7日待機'},
+      {type:'branch',  label:'開封した？'},
+      {type:'send',    label:'未開封 → LINE で再アプローチ'},
+      {type:'goal',    label:'再購入 / 配信停止'},
+    ]},
+    {id:'wf-cart', name:'カート放棄リカバリ', trigger:'カート保留 24 時間', status:'一時停止', enrolled:64, cvr:'18.6%', nodes:[
+      {type:'trigger', label:'カート保留 24h'},
+      {type:'send',    label:'リマインド（LINE）'},
+      {type:'wait',    label:'48時間待機'},
+      {type:'branch',  label:'購入した？'},
+      {type:'send',    label:'未購入 → 在庫僅少アラート + 送料無料'},
+      {type:'goal',    label:'CV（受注）'},
+    ]},
+  ],
+
+  // 効果指標の時系列（CV率 / 開封率 / 配信解除率・item 12b）
+  FUNNEL: {
+    weeks: ['W1','W2','W3','W4','W5','W6','W7','W8'],
+    cvr:   [3.2, 3.6, 4.1, 4.0, 4.6, 5.2, 5.0, 5.8],
+    open:  [38, 41, 44, 43, 47, 49, 48, 52],
+    unsub: [0.9, 0.8, 1.1, 0.7, 0.6, 0.8, 0.5, 0.6],
+  },
 };

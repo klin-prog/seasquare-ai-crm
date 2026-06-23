@@ -156,6 +156,7 @@ const PAGES = {
   customers:  { label: '顧客一覧', group: '顧客' },
   leads:      { label: '見込客（リード）', group: '顧客' },
   campaigns:  { label: 'キャンペーン', group: '顧客' },
+  workflows:  { label: 'ワークフロー', group: '顧客' },
   // Products
   orders:     { label: '受注管理', group: '商品' },
   inventory:  { label: '在庫・商品', group: '商品' },
@@ -186,13 +187,14 @@ function nav(name) {
   } else {
     stopAgentSimulation();
   }
+  if (name === 'workflows') setTimeout(renderFunnelChart, 50);
 }
 
 /* ===== Sidebar ===== */
 function buildSidebar() {
   const groups = {
     '今日':   [['dashboard','home'],['tasks','inbox', 12],['approvals','shield', 4, 'urgent'],['deals','deal']],
-    '顧客':   [['customers','users'],['leads','flame', 7, 'urgent'],['campaigns','mail']],
+    '顧客':   [['customers','users'],['leads','flame', 7, 'urgent'],['campaigns','mail'],['workflows','zap']],
     '商品':   [['orders','box'],['inventory','store']],
     'AI':     [['insights','sparkles', 4, 'ai'],['agent-log','terminal']],
     '分析':   [['reports','chart'],['analytics','db']],
@@ -535,6 +537,64 @@ function renderCampaigns() {
   `).join('');
 }
 
+/* ===== Workflows (items 12, 14) ===== */
+let selectedWf = null;
+function renderWorkflows() {
+  const list = $('#wf-list'); if (!list) return;
+  if (!selectedWf) selectedWf = DATA.WORKFLOWS[0].id;
+  list.innerHTML = DATA.WORKFLOWS.map(w => `
+    <div class="wf-item ${w.id === selectedWf ? 'active' : ''}" onclick="selectWorkflow('${w.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:600;font-size:12.5px">${w.name}</span>
+        ${statusBadge(w.status)}
+      </div>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:5px;display:flex;align-items:center;gap:5px">${Icon('zap', 10)} ${w.trigger}</div>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:6px;display:flex;gap:12px"><span>登録 ${w.enrolled}名</span><span>CV率 <b style="color:var(--success)">${w.cvr}</b></span></div>
+    </div>`).join('');
+  renderWfCanvas();
+}
+function selectWorkflow(id) { selectedWf = id; renderWorkflows(); }
+function renderWfCanvas() {
+  const c = $('#wf-canvas'); if (!c) return;
+  const w = DATA.WORKFLOWS.find(x => x.id === selectedWf) || DATA.WORKFLOWS[0];
+  const meta = { trigger:{ic:'zap',t:'トリガー'}, send:{ic:'mail',t:'送信'}, wait:{ic:'clock',t:'待機'}, branch:{ic:'filter',t:'分岐'}, goal:{ic:'check',t:'ゴール'} };
+  c.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div><div class="card-title">${w.name}</div><div class="card-sub" style="display:flex;align-items:center;gap:5px;margin-top:2px">${Icon('zap',11)} トリガー: ${w.trigger}</div></div>
+      ${statusBadge(w.status)}
+    </div>
+    <div style="display:flex;flex-direction:column">
+      ${w.nodes.map((n, i) => {
+        const m = meta[n.type] || { ic:'cpu', t:n.type };
+        return `<div class="wf-node wf-${n.type}"><span class="wf-ic">${Icon(m.ic, 14)}</span><div style="min-width:0"><div class="wf-type">${m.t}</div><div class="wf-label">${n.label}</div></div></div>${i < w.nodes.length - 1 ? '<div class="wf-conn"></div>' : ''}`;
+      }).join('')}
+    </div>`;
+}
+let funnelChart = null;
+function renderFunnelChart() {
+  const cv = $('#funnelChart'); if (!cv) return;
+  if (funnelChart) { funnelChart.resize(); return; }
+  const f = DATA.FUNNEL, txt = '#767c95', grid = 'rgba(20,21,42,.06)';
+  const primary = CONFIG.brand.primary, secondary = CONFIG.brand.secondary;
+  funnelChart = new Chart(cv, {
+    type: 'line',
+    data: { labels: f.weeks, datasets: [
+      { label:'CV率 (%)', data:f.cvr, borderColor:primary, backgroundColor:_hexToRgba(primary, .10), fill:true, tension:.35, borderWidth:2, pointRadius:2, yAxisID:'y' },
+      { label:'開封率 (%)', data:f.open, borderColor:secondary, fill:false, tension:.35, borderWidth:2, pointRadius:2, yAxisID:'y1' },
+      { label:'配信解除率 (%)', data:f.unsub, borderColor:'#e11d48', borderDash:[4,3], fill:false, tension:.35, borderWidth:1.5, pointRadius:2, yAxisID:'y' },
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'bottom', labels:{ color:txt, font:{size:11}, boxWidth:12 } } },
+      scales: {
+        x:  { ticks:{ color:txt, font:{size:10.5} }, grid:{ color:grid } },
+        y:  { position:'left',  ticks:{ color:txt, font:{size:10}, callback:v=>v+'%' }, grid:{ color:grid }, title:{ display:true, text:'CV率 / 解除率', color:txt, font:{size:10} } },
+        y1: { position:'right', ticks:{ color:txt, font:{size:10}, callback:v=>v+'%' }, grid:{ display:false }, title:{ display:true, text:'開封率', color:txt, font:{size:10} } },
+      }
+    }
+  });
+}
+
 /* ===== Insights ===== */
 function renderInsights() {
   $('#insights-list').innerHTML = DATA.INSIGHTS.map((i,idx) => renderInsightCard(i, idx, idx===0)).join('');
@@ -544,7 +604,7 @@ function renderInsights() {
 function renderApprovals() {
   const riskCls = {'高':'b-danger','中':'b-warn','低':'b-neutral'};
   $('#approvals-table tbody').innerHTML = DATA.APPROVALS.map((a,idx) => `
-    <tr class="clickable" onclick="openApproval(${idx})">
+    <tr class="clickable" onclick="openApprovalCompose(${idx})">
       <td><span class="badge b-ai">${a.kind}</span></td>
       <td style="font-weight:500">${a.content}</td>
       <td class="cell-mute">${a.target}</td>
@@ -697,6 +757,7 @@ renderTasks();
 renderOrders();
 renderInventory();
 renderCampaigns();
+renderWorkflows();
 renderInsights();
 renderApprovals();
 renderAgentLog();

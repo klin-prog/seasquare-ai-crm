@@ -364,9 +364,7 @@ function runAnalyticsQuery() {
 }
 
 /* ===== Bulk / mass actions ===== */
-function applyCustomerFilter() {
-  toast('フィルター適用: 5,432 → 134 件');
-}
+/* applyCustomerFilter は app.js に実装（家具セグメントで実フィルタ・item 9） */
 
 function recalcLeadScore() {
   toast('AI スコア再計算中 ...');
@@ -462,6 +460,41 @@ function showInventoryAlert() {
   });
 }
 
+/* ===== AI 下書き → 承認モーダル (item 13) ===== */
+function openApprovalCompose(idx) {
+  const a = DATA.APPROVALS[idx];
+  if (!a) return;
+  const suppressNote = a.kind === 'メール一括送付'
+    ? `<div style="font-size:11.5px;color:var(--text-mute);margin-top:8px;display:flex;align-items:center;gap:6px">${Icon('pause',11)} 配信頻度上限に達した顧客は自動で除外されます（過剰配信の抑制）</div>` : '';
+  openModal({
+    title: 'AI 生成内容を確認・承認',
+    subtitle: a.content,
+    size: 'lg',
+    icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--ai-bg);color:var(--ai);display:grid;place-items:center">${Icon('sparkles',18)}</div>`,
+    body: `
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span class="badge b-ai">${a.kind}</span>
+        <span class="badge b-neutral">対象: ${a.target}</span>
+        <span class="badge b-success">予測 ${a.impact}</span>
+        <span class="badge ${a.risk==='高'?'b-danger':a.risk==='中'?'b-warn':'b-neutral'}">リスク: ${a.risk}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:6px">AI 根拠</div>
+      <div style="font-size:12.5px;color:var(--text-soft);background:#fafbfd;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">${a.reason}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600">AI 生成ドラフト（編集可）</span>
+        <button class="btn ai sm" onclick="toast('AI が文面を再生成中 ...')">${Icon('sparkles',12)} 再生成</button>
+      </div>
+      <textarea class="input" id="__approval_draft" rows="7" style="width:100%;padding:12px;resize:vertical;line-height:1.7;font-size:13px">${a.draft || ''}</textarea>
+      ${suppressNote}
+    `,
+    footer: `
+      <button class="btn ghost" onclick="closeModal()">閉じる</button>
+      <button class="btn danger" onclick="confirmDialog({title:'AI 提案を却下',body:'この提案を却下します。',kind:'danger',confirmText:'却下',onConfirm:()=>{toast('却下しました');closeModal()}})">却下</button>
+      <button class="btn primary" onclick="toast('承認して送信しました');closeModal()">${Icon('check',13)} 承認して送信</button>
+    `,
+  });
+}
+
 /* ===== Misc handlers ===== */
 function switchTaskTab(el, label) {
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -479,10 +512,11 @@ Object.assign(window, {
   openNewTaskModal, openNewCustomerModal, openNewDealModal,
   openNewCampaignModal, openNewProductModal, openNewUserModal,
   openUserEdit, newConnection, runAnalyticsQuery,
-  applyCustomerFilter, recalcLeadScore, bulkAIApproach,
+  recalcLeadScore, bulkAIApproach,
   bulkApproveAll, bulkRejectAll, refreshDashboard,
   exportCSV, printOrderLabels, regenerateInsights,
   showInventoryAlert, switchTaskTab, filterStream,
+  openApprovalCompose,
 });
 
 /* ===== Hijack the openIntegrationDetail handler used in HTML – route to details.js openIntegration ===== */

@@ -878,3 +878,19 @@ textarea.input { height: auto; }
 .intg h4 { font-size: 13.5px; font-weight: 600; margin: 0; }
 .intg p { font-size: 11.5px; color: var(--text-mute); margin: 2px 0 0; }
 .intg .meta { font-size: 11.5px; color: var(--text-mute); display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-soft); }
+
+/* ===== Workflow diagram (item 12) ===== */
+.wf-item { padding: 12px 14px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
+.wf-item:hover { background: var(--surface-2); }
+.wf-item.active { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+.wf-node { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; font-size: 12.5px; max-width: 480px; }
+.wf-node .wf-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); color: var(--text-mute); }
+.wf-node .wf-type { font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.wf-node .wf-label { font-weight: 500; line-height: 1.4; }
+.wf-conn { width: 2px; height: 16px; background: var(--border); margin-left: 27px; }
+.wf-trigger .wf-ic { background: var(--accent-bg); color: var(--accent-hi); }
+.wf-send .wf-ic { background: var(--info-bg); color: var(--info); }
+.wf-wait .wf-ic { background: var(--surface-2); color: var(--text-mute); }
+.wf-branch .wf-ic { background: var(--warn-bg); color: var(--warn); }
+.wf-goal .wf-ic { background: var(--success-bg); color: var(--success); }
+.wf-goal { border-color: var(--success); background: rgba(22,163,74,.04); }
