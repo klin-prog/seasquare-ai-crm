@@ -104,23 +104,97 @@ function nurtureHTML() {
   </div>`;
 }
 
-/* AR/3D プレビュー（家具を部屋に試し置きするイメージ・D23） */
+/* AR/3D プレビュー（家具を部屋に試し置き・回転・部屋色切替・D23/4c） */
+const AR_ROOMS = [
+  { name:'ナチュラル', sw:'#e8e1d4', bg:'linear-gradient(160deg,#f3efe7,#e7ddcb 55%,#ddd0b8)', floor:'linear-gradient(180deg,rgba(150,120,70,.10),rgba(120,90,50,.18))' },
+  { name:'グレー',     sw:'#e3e7f2', bg:'linear-gradient(160deg,#eef1f8,#e3e7f2 55%,#d9dde9)', floor:'linear-gradient(180deg,var(--accent-bg),var(--ai-bg))' },
+  { name:'ウォーム',   sw:'#f1ddcd', bg:'linear-gradient(160deg,#fbf1e9,#f3e2d6 55%,#ecd3c2)', floor:'linear-gradient(180deg,rgba(217,119,6,.12),rgba(225,29,72,.10))' },
+  { name:'ダーク',     sw:'#363a51', bg:'linear-gradient(160deg,#2b2e44,#23263a 60%,#1d2030)', floor:'linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))' },
+];
+function setArRoom(i) {
+  const r = AR_ROOMS[i]; if (!r) return;
+  const room = document.getElementById('ar-room'), fl = document.getElementById('ar-floor');
+  if (room) room.style.background = r.bg;
+  if (fl) fl.style.background = r.floor;
+}
+window.setArRoom = setArRoom;
 function arPreviewHTML(p) {
   const has3D = (p.ar || '').includes('3D'), hasAR = (p.ar || '').includes('AR');
   return `
     <div style="margin-bottom:14px">
-      <div class="ar-room">
-        <div class="ar-floor"></div>
-        <div class="ar-item">${Icon('box', 46)}</div>
+      <div class="ar-room" id="ar-room">
+        <div class="ar-floor" id="ar-floor"></div>
+        <div class="ar-item" id="ar-item">${Icon('box', 46)}</div>
         <div class="ar-badges">
           ${has3D ? '<span class="badge b-accent">3D</span>' : ''}
           ${hasAR ? '<span class="badge b-info">AR</span>' : ''}
         </div>
         <div class="ar-tag">${p.cat} ・ お部屋プレビュー</div>
       </div>
-      ${hasAR ? `<button class="btn ai sm" style="width:100%;justify-content:center;margin-top:8px" onclick="toast('AR ビューを起動 ・ カメラで部屋に試し置き')">${Icon('box',12)} AR で部屋に試し置き</button>` : ''}
+      <div style="display:flex;align-items:center;gap:7px;margin-top:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text-mute)">部屋:</span>
+        ${AR_ROOMS.map((r, i) => `<button title="${r.name}" onclick="setArRoom(${i})" style="width:22px;height:22px;border-radius:6px;border:1px solid var(--border);cursor:pointer;padding:0;background:${r.sw}"></button>`).join('')}
+        ${(has3D || hasAR) ? `<button class="btn ghost sm" style="margin-left:auto" onclick="document.getElementById('ar-item').classList.toggle('spin')">${Icon('refresh',11)} 360°回転</button>` : ''}
+        ${hasAR ? `<button class="btn ai sm" onclick="toast('AR ビューを起動 ・ カメラで部屋に試し置き')">${Icon('box',12)} ARで試し置き</button>` : ''}
+      </div>
     </div>`;
 }
+
+/* 検討ステージ（家具は長期検討・4c）— スコア/行動から現在地を推定 */
+function considerStageHTML(c) {
+  const stages = ['初回閲覧', 'AR体験', '比較検討', '相談', '購入'];
+  const cur = c.score >= 90 ? 4 : c.score >= 75 ? 3 : c.score >= 55 ? 2 : (c.acts || []).includes('ar_view') ? 1 : 0;
+  return `<div style="display:flex;align-items:flex-start;margin:2px 0 4px">
+    ${stages.map((s, i) => `
+      <div style="display:flex;align-items:center;${i < stages.length - 1 ? 'flex:1' : ''}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
+          <div style="width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;${i <= cur ? 'background:var(--accent);color:#fff' : 'background:var(--surface-2);color:var(--text-mute);border:1px solid var(--border)'}">${i < cur ? '✓' : i + 1}</div>
+          <span style="font-size:10px;color:${i <= cur ? 'var(--text)' : 'var(--text-mute)'};white-space:nowrap">${s}</span>
+        </div>
+        ${i < stages.length - 1 ? `<div style="flex:1;height:2px;margin:0 4px 18px;background:${i < cur ? 'var(--accent)' : 'var(--border)'}"></div>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
+/* AI コーディネート提案（3点セット・家具EC固有・4c） */
+function openCoordinate(id) {
+  const c = DATA.CUSTOMERS.find(x => x.id === id);
+  const set = ['SOFA-001', 'RUG-001', 'LAMP-001'].map(s => DATA.INVENTORY.find(p => p.sku === s)).filter(Boolean);
+  const total = set.reduce((s, p) => s + p.price, 0);
+  const setPrice = Math.round(total * 0.9 / 1000) * 1000;
+  const arNote = c && (c.acts || []).includes('ar_view') ? 'AR で空間イメージを確認済みのため、設置後の質感が伝わる構成に。' : '';
+  openModal({
+    title: 'AI コーディネート提案',
+    subtitle: c ? `${c.name} さま向け ・ リビング3点セット` : 'リビング3点セット',
+    size: 'lg',
+    icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--ai-bg);color:var(--ai);display:grid;place-items:center">${Icon('sparkles',18)}</div>`,
+    body: `
+      <div style="background:var(--accent-bg);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--text-soft);margin-bottom:14px;line-height:1.7">
+        ${c ? `${c.fseg}・スコア${c.score}の${c.name}さまに、` : ''}相性の良い3点を AI が選定。${arNote}統一感のあるナチュラルテイストで、セット購入なら <b style="color:var(--accent-hi)">10%OFF</b>。
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        ${set.map(p => `
+          <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="height:84px;background:linear-gradient(160deg,#eef1f8,#e3e7f2);display:grid;place-items:center;color:var(--brand-primary)">${Icon('box',28)}</div>
+            <div style="padding:10px">
+              <div style="font-size:12px;font-weight:600;line-height:1.4">${p.name}</div>
+              <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${p.cat}</div>
+              <div style="font-size:12.5px;font-weight:700;margin-top:6px">${yen(p.price)}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:#fafbfd;border:1px solid var(--border);border-radius:10px">
+        <div><span style="font-size:12px;color:var(--text-mute)">3点合計</span> <span style="text-decoration:line-through;color:var(--text-mute);margin-left:6px">${yen(total)}</span></div>
+        <div style="font-size:20px;font-weight:700;color:var(--accent-hi)">${yen(setPrice)} <span style="font-size:11px;color:var(--success);font-weight:600;margin-left:4px">セット割10%</span></div>
+      </div>`,
+    footer: `
+      <button class="btn ghost" onclick="closeModal()">閉じる</button>
+      <button class="btn" onclick="toast('提案をPDF化')">${Icon('download',13)} PDF</button>
+      <button class="btn ai" onclick="confirmDialog({title:'コーディネート提案を送付',body:'${c ? c.name + 'さま' : 'お客さま'}へ 3点セット提案を LINE 送付します。',confirmText:'送付',onConfirm:()=>{toast('提案を送付しました');closeModal()}})">${Icon('line',13)} LINEで提案を送付</button>
+    `,
+  });
+}
+window.openCoordinate = openCoordinate;
 
 /* ===== Detail renderers ===== */
 function openCustomer(id) {
@@ -137,6 +211,8 @@ function openCustomer(id) {
       Tile('累計購入', c.count+' 回') +
       Tile('チャネル', c.ch)
     )}
+    ${SecLabel('検討ステージ')}
+    ${considerStageHTML(c)}
     ${SecLabel('AI スコア内訳')}
     ${scoreBreakdownHTML(c.acts, c.score)}
     ${SecLabel('行動履歴')}
@@ -159,6 +235,7 @@ function openCustomer(id) {
       </div>
     </div>
     <button class="btn primary lg" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmDialog({title:'AI アクションを実行',body:'${c.name}さまへ AR 体験リンクを LINE 送付します。',confirmText:'承認・実行',onConfirm:()=>{toast('${c.name}さまへ LINE 送付しました');closeDrawer();}})">承認して実行</button>
+    <button class="btn lg" style="width:100%;justify-content:center;margin-top:8px" onclick="closeDrawer();openCoordinate('${c.id}')">${Icon('sparkles',13)} AI コーディネート提案</button>
     ${Actions([
       {label: Icon('mail',13)+' メール', onclick:`toast('メーラーを起動')`},
       {label: Icon('line',13)+' LINE', onclick:`toast('LINE トーク開く')`},
