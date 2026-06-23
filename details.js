@@ -76,11 +76,16 @@ function scoreBreakdownHTML(acts, score) {
         </div>`).join('')}
     </div>`;
 }
-function actionHistoryHTML(acts) {
-  const times = ['今日 14:20', '今日 11:05', '昨日 21:30', '昨日 18:12', '一昨日 13:40', '5/17 20:05', '5/15 09:50', '5/12 22:10'];
+function actionHistoryHTML(acts, seed) {
   const rows = scoreRows(acts);
+  const h = String(seed || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const days = ['今日', '昨日', '一昨日', '3日前', '4日前', '6日前', '9日前', '12日前'];
   return `<div style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
-    ${rows.map((r, i) => `<div style="display:flex;gap:10px"><span class="cell-mono" style="color:var(--text-mute);flex-shrink:0;min-width:74px">${times[i] || '—'}</span><span>${r.label}</span></div>`).join('')}
+    ${rows.map((r, i) => {
+      const hh = String(9 + ((h + i * 7) % 12)).padStart(2, '0');
+      const mm = String((h * 3 + i * 17) % 60).padStart(2, '0');
+      return `<div style="display:flex;gap:10px"><span class="cell-mono" style="color:var(--text-mute);flex-shrink:0;min-width:84px">${days[i] || (i + '日前')} ${hh}:${mm}</span><span>${r.label}</span></div>`;
+    }).join('')}
   </div>`;
 }
 function nurtureHTML() {
@@ -117,7 +122,7 @@ function openCustomer(id) {
     ${SecLabel('AI スコア内訳')}
     ${scoreBreakdownHTML(c.acts, c.score)}
     ${SecLabel('行動履歴')}
-    ${actionHistoryHTML(c.acts)}
+    ${actionHistoryHTML(c.acts, c.id)}
     <div style="display:flex;gap:10px;margin-top:8px;font-size:12px;color:var(--text-mute)"><span class="cell-mono" style="min-width:74px">${c.last}</span><span>前回購入</span></div>
     ${SecLabel('配信ステータス（過剰配信の抑制）')}
     <div style="background:${isSuppressed(c) ? 'var(--danger-bg)' : '#fafbfd'};border:1px solid ${isSuppressed(c) ? 'rgba(225,29,72,.22)' : 'var(--border)'};border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:8px">
@@ -492,8 +497,33 @@ function openUser(name, email, role) {
   `);
 }
 
+const REPORT_DATA = {
+  '商談 AI スコアリング分析': {
+    summary: 'AIスコアの予測精度は87%。スコア85以上のリードの実成約率は42%で全体平均(18%)の2.3倍。AR・マイルーム行動を持つ層で特に高精度。',
+    metrics: [['予測精度(AUC)','0.87','+0.04','var(--success)'],['スコア85+ 成約率','42%','+6pt','var(--success)'],['平均リードタイム','19日','-3日','var(--success)'],['誤検知率','7.2%','-1.1pt','var(--success)']],
+  },
+  'キャンペーン効果分析': {
+    summary: 'LINEはメールに対し開封率+24pt・CV率+1.8pt。母の日リピート訴求がCV8件/¥640,000で最高。配信解除率は0.6%と健全。',
+    metrics: [['LINE 開封率','72.4%','+24pt','var(--success)'],['メール 開封率','48.1%','+3pt','var(--success)'],['平均 CV率','5.2%','+0.6pt','var(--success)'],['配信解除率','0.6%','-0.2pt','var(--success)']],
+  },
+  'CV 経路分析': {
+    summary: 'AR体験を経由した購入は全体の38%、非経由比でCVRが2.1倍。LINE→AR→カートが最短動線。離脱は価格比較ページに集中。',
+    metrics: [['AR経由 CV比率','38%','+9pt','var(--success)'],['AR経由 CVR','12.4%','+6.6pt','var(--success)'],['平均接触回数','4.2回','+0.3','var(--text)'],['価格ページ離脱率','41%','+2pt','var(--danger)']],
+  },
+  '商品売れ筋・滞留': {
+    summary: 'ソファ・ダイニングで売上の62%。ナチュラルウッドダイニングは在庫回転2.4回/月で要補充。リネンカーテンは滞留(回転0.4)。',
+    metrics: [['売れ筋トップ','ソファ','—','var(--text)'],['最高回転','ダイニング 2.4','+0.5','var(--success)'],['滞留 SKU','カーテン 0.4','-0.1','var(--danger)'],['在庫切迫','3 SKU','+1','var(--warn)']],
+  },
+  'LTV コホート分析': {
+    summary: '2024Q2獲得コホートの12ヶ月LTVが¥186,000で最高。LINE獲得層はEC獲得層よりLTV+38%。獲得後6ヶ月のVIP化率は14%。',
+    metrics: [['最高LTVコホート','24Q2','—','var(--text)'],['12ヶ月平均LTV','¥186,000','+12%','var(--success)'],['LINE層 LTV差','+38%','+5pt','var(--success)'],['VIP化率(6ヶ月)','14%','+2pt','var(--success)']],
+  },
+};
 function openReport(title) {
   const k = window.getMetrics ? getMetrics() : { actual:6840000, target:10000000, forecast:9200000, momGrowth:14.2, achievement:.684, projected:.92 };
+  const rep = REPORT_DATA[title];
+  const summary = rep ? rep.summary : `今月の売上は ${yen(k.actual)} で前月比 +${k.momGrowth.toFixed(1)}%。VIP・リピート顧客の購買が牽引し、AI 接客経由の注文が全体の 58% を占めています。AI 予測では月末 ${yenM(k.forecast)} 着地、目標達成率 ${(k.projected*100).toFixed(0)}%（達成率 ${(k.achievement*100).toFixed(1)}%）。`;
+  const metrics = rep ? rep.metrics : [['EC 売上',yenM(k.actual),'+'+k.momGrowth.toFixed(1)+'%','var(--success)'],['平均単価','¥41,200','+8.4%','var(--success)'],['CVR','4.8%','-0.3%','var(--danger)'],['AI 接客率','58%','+12%','var(--success)']];
   DRAWER.open(`レポート: ${title}`, `
     <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">2026 年 5 月度</div>
     ${Grid4(
@@ -503,12 +533,10 @@ function openReport(title) {
       Tile('鮮度', 'Live')
     )}
     ${SecLabel('サマリー')}
-    <div style="font-size:12.5px;line-height:1.7;color:var(--text-soft)">
-      今月の売上は ${yen(k.actual)} で前月比 +${k.momGrowth.toFixed(1)}%。VIP・リピート顧客の購買が牽引し、AI 接客経由の注文が全体の 58% を占めています。AI 予測では月末 ${yenM(k.forecast)} 着地、目標達成率 ${(k.projected*100).toFixed(0)}%（達成率 ${(k.achievement*100).toFixed(1)}%）。
-    </div>
+    <div style="font-size:12.5px;line-height:1.7;color:var(--text-soft)">${summary}</div>
     ${SecLabel('主要指標')}
     <div style="display:flex;flex-direction:column;gap:8px">
-      ${[['EC 売上',yenM(k.actual),'+'+k.momGrowth.toFixed(1)+'%','var(--success)'],['平均単価','¥41,200','+8.4%','var(--success)'],['CVR','4.8%','-0.3%','var(--danger)'],['AI 接客率','58%','+12%','var(--success)']].map(([l,v,d,c])=>`
+      ${metrics.map(([l,v,d,c])=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fafbfd;border:1px solid var(--border);border-radius:10px;font-size:12.5px">
           <span>${l}</span>
           <div><span style="font-weight:600">${v}</span> <span style="color:${c};margin-left:8px;font-size:11.5px">${d}</span></div>

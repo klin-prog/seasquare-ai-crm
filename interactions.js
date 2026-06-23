@@ -368,7 +368,7 @@ function runAnalyticsQuery() {
 
 function recalcLeadScore() {
   toast('AI スコア再計算中 ...');
-  setTimeout(() => toast('再計算完了 1.8 秒'), 900);
+  setTimeout(() => { if (window.renderLeads) renderLeads(); toast('再計算完了 ・ 1.8 秒'); }, 900);
 }
 
 function bulkAIApproach() {
@@ -499,7 +499,8 @@ function openApprovalCompose(idx) {
 function switchTaskTab(el, label) {
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  toast(`「${label}」に切替`);
+  window.taskFilter = label;        // 実際に絞り込む（Y17）
+  if (window.renderTasks) renderTasks();
 }
 
 function filterStream(value) {

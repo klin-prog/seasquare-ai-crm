@@ -70,13 +70,11 @@ function renderKPIs() {
 
 /* ===== 更新 button — perturb live metrics ±数% (item 5) ===== */
 function perturbMetrics() {
+  // 売上系のみ微変動（タスク数はサイドバー/タブと整合させるため固定・R2）
   const jit = (v, pct) => Math.round(v * (1 + (Math.random() * 2 - 1) * pct));
   METRICS.actual = jit(METRICS.actual, 0.03);
   METRICS.forecast = jit(METRICS.forecast, 0.03);
   METRICS.momGrowth = +(METRICS.momGrowth + (Math.random() * 2 - 1) * 1.2).toFixed(1);
-  METRICS.openTasks = Math.max(1, METRICS.openTasks + Math.round((Math.random() * 2 - 1) * 2));
-  METRICS.aiTasks = Math.round(METRICS.openTasks * 0.75);
-  METRICS.manualTasks = Math.max(0, METRICS.openTasks - METRICS.aiTasks);
 }
 function updateRevenueChart() {
   if (!revChart) return;
@@ -137,6 +135,11 @@ function fsegBadge(s) {
   const m = { '新規':'b-info','高単価検討中':'b-accent','リピート育成中':'b-warn','VIP':'b-accent','離脱リスク':'b-danger','離脱(1年+)':'b-neutral' };
   return `<span class="badge ${m[s]||'b-neutral'}">${s}</span>`;
 }
+// リードの旧セグメントを家具セグメント語彙に揃える（Y10・用語統一）
+function leadFseg(l) {
+  return ({ 'リピート':'リピート育成中', 'VIP':'VIP', '新規':'新規', '休眠':'離脱リスク' })[l.seg] || l.seg;
+}
+const byScoreDesc = (a, b) => b.score - a.score;
 
 /* ===== 行動スコア (items 7, 8) — score = Σ(action weight) ===== */
 function leadScore(acts) { return Math.min(99, (acts || []).reduce((s, a) => s + ((ACTION_TYPES[a] && ACTION_TYPES[a].w) || 0), 0)); }
@@ -288,10 +291,10 @@ function renderDashboard() {
   `).join('');
 
   // Hot leads
-  $('#dash-leads').innerHTML = DATA.LEADS.slice(0, 5).map(l => `
+  $('#dash-leads').innerHTML = [...DATA.LEADS].sort(byScoreDesc).slice(0, 5).map(l => `
     <div onclick="openLead(${l.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
       <div style="flex:1">
-        <div style="font-weight:500">${l.name} <span style="color:var(--text-mute);font-size:11px;margin-left:4px">${segBadge(l.seg)}</span></div>
+        <div style="font-weight:500">${l.name} <span style="color:var(--text-mute);font-size:11px;margin-left:4px">${fsegBadge(leadFseg(l))}</span></div>
         <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${l.last}</div>
       </div>
       ${scoreChip(l.score)}
@@ -369,8 +372,17 @@ function renderInsightCard(i, idx, featured) {
 
 /* ===== Customers ===== */
 function renderCustomers() {
-  const seg = window.customerFilter || '全セグメント';
-  const rows = DATA.CUSTOMERS.filter(c => seg === '全セグメント' || c.fseg === seg);
+  const f = window.custFilters || {};
+  const seg = f.seg || '全セグメント';
+  const rows = DATA.CUSTOMERS.filter(c => {
+    if (seg !== '全セグメント' && c.fseg !== seg) return false;
+    if (f.score === '高 (80+)'   && !(c.score >= 80)) return false;
+    if (f.score === '中 (50-79)' && !(c.score >= 50 && c.score < 80)) return false;
+    if (f.score === '低'         && !(c.score < 50)) return false;
+    if (f.ch && f.ch !== '登録チャネル' && c.ch !== f.ch) return false;
+    if (f.q && !(c.name.includes(f.q) || c.id.toLowerCase().includes(f.q.toLowerCase()))) return false;
+    return true;
+  });
   $('#customers-table tbody').innerHTML = rows.map(c => `
     <tr class="clickable" onclick="openCustomer('${c.id}')">
       <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
@@ -387,16 +399,22 @@ function renderCustomers() {
       <td>${chBadge(c.ch)}</td>
       <td>${scoreChip(c.score)}</td>
     </tr>
-  `).join('');
+  `).join('') || `<tr><td colspan="9" style="padding:28px;text-align:center;color:var(--text-mute)">条件に一致する顧客がいません</td></tr>`;
+  const active = (seg !== '全セグメント') || (f.score && f.score !== 'LTV スコア') || (f.ch && f.ch !== '登録チャネル') || !!f.q;
   const pg = document.querySelector('#view-customers .pager span');
-  if (pg) pg.textContent = seg === '全セグメント' ? '1 — 12 / 5,432 件' : `${rows.length} 件（「${seg}」で絞り込み）`;
+  if (pg) pg.textContent = active ? `${rows.length} 件（絞り込み中 / 全 5,432 件）` : '1 — 12 / 5,432 件';
 }
 function applyCustomerFilter() {
-  const sel = document.querySelector('#view-customers .filterbar select');
-  window.customerFilter = sel ? sel.value : '全セグメント';
+  const sels = document.querySelectorAll('#view-customers .filterbar select');
+  const inp = document.querySelector('#view-customers .filterbar input');
+  window.custFilters = {
+    seg:   sels[0] ? sels[0].value : '全セグメント',
+    score: sels[1] ? sels[1].value : 'LTV スコア',
+    ch:    sels[2] ? sels[2].value : '登録チャネル',
+    q:     inp ? inp.value.trim() : '',
+  };
   renderCustomers();
-  const n = DATA.CUSTOMERS.filter(c => window.customerFilter === '全セグメント' || c.fseg === window.customerFilter).length;
-  toast(`セグメント「${window.customerFilter}」: ${n} 件`);
+  toast(`絞り込み: ${document.querySelectorAll('#customers-table tbody tr').length} 件`);
 }
 window.applyCustomerFilter = applyCustomerFilter;
 
@@ -413,7 +431,7 @@ function renderLeadTiles() {
 }
 function renderLeads() {
   renderLeadTiles();
-  $('#leads-table tbody').innerHTML = DATA.LEADS.map(l => `
+  $('#leads-table tbody').innerHTML = [...DATA.LEADS].sort(byScoreDesc).map(l => `
     <tr class="clickable" onclick="openLead(${l.id})">
       <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
       <td><div style="display:flex;align-items:center;gap:10px">
@@ -421,7 +439,7 @@ function renderLeads() {
         <span style="font-weight:500">${l.name}</span>
       </div></td>
       <td>${scoreChip(l.score)}</td>
-      <td>${segBadge(l.seg)}</td>
+      <td>${fsegBadge(leadFseg(l))}</td>
       <td class="cell-mute" style="max-width:220px">${l.last}</td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
@@ -440,6 +458,12 @@ function renderLeads() {
 
 /* ===== Deals ===== */
 function renderDeals() {
+  // ヘッダーの数値をボードから算出（R3・看板と一致させる）
+  const cols = DATA.DEALS_BOARD, allItems = cols.flatMap(c => c.items);
+  const openSum = cols.filter(c => c.key !== 'won').flatMap(c => c.items).reduce((s, d) => s + d.a, 0);
+  const aiN = allItems.filter(d => d.src === 'AI').length, manN = allItems.length - aiN;
+  const sub = document.querySelector('#view-deals .page-sub');
+  if (sub) sub.textContent = `月内見込 ${yen(openSum)} ・ AI 自動生成 ${aiN} 件 / 手動 ${manN} 件`;
   $('#deals-board').innerHTML = DATA.DEALS_BOARD.map(c => `
     <div class="kanban-col col-${c.color}">
       <h4>
@@ -464,13 +488,23 @@ function renderDeals() {
 /* ===== Tasks ===== */
 function renderTasks() {
   const priBar = { '高':'var(--danger)','中':'var(--warn)','低':'var(--text-dim)' };
-  $('#tasks-list').innerHTML = DATA.TASKS.map(t => `
+  const statusCls = { '未対応':'b-warn','対応中':'b-info','完了':'b-success' };
+  // tab counts are derived from data (Y17)
+  const counts = {}; DATA.TASKS.forEach(t => counts[t.status] = (counts[t.status] || 0) + 1);
+  const order = ['未対応', '対応中', '完了'];
+  document.querySelectorAll('#view-tasks .tabs .tab').forEach((tab, i) => {
+    const ct = tab.querySelector('.ct'); if (ct && order[i]) ct.textContent = counts[order[i]] || 0;
+  });
+  const f = window.taskFilter || '未対応';
+  const rows = DATA.TASKS.filter(t => f === 'すべて' || t.status === f);
+  $('#tasks-list').innerHTML = rows.length ? rows.map(t => `
     <div class="clickable" onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border-soft);cursor:pointer">
       <input type="checkbox" class="checkbox" onclick="event.stopPropagation()">
       <div style="width:3px;height:32px;border-radius:2px;background:${priBar[t.priority]}"></div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:500">${t.title}</div>
         <div style="font-size:11.5px;color:var(--text-mute);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge ${statusCls[t.status] || 'b-neutral'}">${t.status}</span>
           ${t.customer !== '-' ? `<span>${Icon('user',11)} ${t.customer}</span>` : ''}
           <span>${Icon('clock',11)} ${t.due}</span>
           ${t.source==='AI'
@@ -481,11 +515,13 @@ function renderTasks() {
       ${priorityChip(t.priority)}
       <button class="btn sm" onclick="event.stopPropagation();openTask(${t.id})">対応する</button>
     </div>
-  `).join('');
+  `).join('') : `<div style="padding:28px;text-align:center;color:var(--text-mute);font-size:12.5px">「${f}」のタスクはありません</div>`;
 }
 
 /* ===== Orders ===== */
 function renderOrders() {
+  const osub = document.querySelector('#view-orders .page-sub');
+  if (osub) osub.textContent = `今月 168 件 / ${yen(metricsView().actual)}`;
   $('#orders-table tbody').innerHTML = DATA.ORDERS.map(o => `
     <tr class="clickable" onclick="openOrder('${o.no}')">
       <td class="cell-mono">${o.no}</td>

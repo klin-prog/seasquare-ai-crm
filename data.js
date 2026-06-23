@@ -73,19 +73,20 @@ window.DATA = {
       acts:['pdp_repeat','price_cmp','favorite','email_open']},
   ],
 
+  // status = 未対応 / 対応中 / 完了（受信箱タブで絞り込み・Y17）
   TASKS: [
-    {id:1,title:'佐藤さまへAR体験リンクをLINE送付',customer:'佐藤 美咲',due:'今日 18:00',source:'AI',reason:'スコア急上昇',priority:'高'},
-    {id:2,title:'ナチュラルウッドダイニング 在庫補充発注',customer:'-',due:'今日中',source:'AI',reason:'在庫AI予測',priority:'高'},
-    {id:3,title:'中村さま向けカスタム提案書を作成',customer:'中村 健太郎',due:'明日 12:00',source:'AI',reason:'VIP高額商談',priority:'高'},
-    {id:4,title:'5月の売れ筋トップ10レポート生成',customer:'-',due:'明日 09:00',source:'AI',reason:'定期実行',priority:'中'},
-    {id:5,title:'180日未購入の20名にクーポン配信',customer:'-',due:'5/21',source:'AI',reason:'チャーン予測',priority:'中'},
-    {id:6,title:'新商品「デスクライト」企画ミーティング招集',customer:'-',due:'5/22',source:'AI',reason:'検索ログ分析',priority:'中'},
-    {id:7,title:'田中さまへ実例カタログ送付',customer:'田中 健一',due:'今日 17:00',source:'AI',reason:'スコア80+',priority:'中'},
-    {id:8,title:'山本さまフォロー電話',customer:'山本 葵',due:'明日 14:00',source:'手動',reason:'-',priority:'低'},
-    {id:9,title:'4月配送遅延の謝罪メール送付',customer:'-',due:'今日中',source:'手動',reason:'-',priority:'高'},
-    {id:10,title:'AR利用ガイド動画 撮影手配',customer:'-',due:'5/25',source:'手動',reason:'-',priority:'低'},
-    {id:11,title:'店頭スタッフ向けAI提案アラート確認',customer:'-',due:'毎日',source:'AI',reason:'業務改善',priority:'低'},
-    {id:12,title:'5月クォータ進捗の経営報告',customer:'-',due:'5/24',source:'手動',reason:'-',priority:'高'},
+    {id:1,title:'佐藤さまへAR体験リンクをLINE送付',customer:'佐藤 美咲',due:'今日 18:00',source:'AI',reason:'スコア急上昇',priority:'高',status:'未対応'},
+    {id:2,title:'ナチュラルウッドダイニング 在庫補充発注',customer:'-',due:'今日中',source:'AI',reason:'在庫AI予測',priority:'高',status:'対応中'},
+    {id:3,title:'中村さま向けカスタム提案書を作成',customer:'中村 健太郎',due:'明日 12:00',source:'AI',reason:'VIP高額商談',priority:'高',status:'未対応'},
+    {id:4,title:'5月の売れ筋トップ10レポート生成',customer:'-',due:'明日 09:00',source:'AI',reason:'定期実行',priority:'中',status:'完了'},
+    {id:5,title:'180日未購入の20名にクーポン配信',customer:'-',due:'5/21',source:'AI',reason:'チャーン予測',priority:'中',status:'未対応'},
+    {id:6,title:'新商品「デスクライト」企画ミーティング招集',customer:'-',due:'5/22',source:'AI',reason:'検索ログ分析',priority:'中',status:'未対応'},
+    {id:7,title:'田中さまへ実例カタログ送付',customer:'田中 健一',due:'今日 17:00',source:'AI',reason:'スコア80+',priority:'中',status:'対応中'},
+    {id:8,title:'山本さまフォロー電話',customer:'山本 葵',due:'明日 14:00',source:'手動',reason:'-',priority:'低',status:'未対応'},
+    {id:9,title:'4月配送遅延の謝罪メール送付',customer:'-',due:'今日中',source:'手動',reason:'-',priority:'高',status:'完了'},
+    {id:10,title:'AR利用ガイド動画 撮影手配',customer:'-',due:'5/25',source:'手動',reason:'-',priority:'低',status:'未対応'},
+    {id:11,title:'店頭スタッフ向けAI提案アラート確認',customer:'-',due:'毎日',source:'AI',reason:'業務改善',priority:'低',status:'未対応'},
+    {id:12,title:'5月クォータ進捗の経営報告',customer:'-',due:'5/24',source:'手動',reason:'-',priority:'高',status:'未対応'},
   ],
 
   ORDERS: [
