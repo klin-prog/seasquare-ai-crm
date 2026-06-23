@@ -146,7 +146,7 @@ function openTask(id) {
     </div>
     ${Grid2(
       Field('期限', `${Icon('clock',12)} ${t.due}`) +
-      Field('担当者', '梶原')
+      Field('担当者', CONFIG.user.name)
     )}
     ${t.customer!=='-' ? `${SecLabel('関連顧客')}<div style="background:#fafbfd;padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${t.customer[0]}</div><span style="font-weight:500">${t.customer}</span></div>`:''}
     ${t.source==='AI' ? `${SecLabel('AI 生成根拠')}<div style="background:var(--accent-bg);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:12px 14px;font-size:12.5px">${t.reason}</div>`:''}
@@ -281,7 +281,7 @@ function openDeal(c, t, a, src) {
       Tile('成約確度', probability+'%', 'var(--accent-hi)') +
       Tile('予測 GP', '¥'+Math.round(a*0.3/1000)+'K') +
       Tile('クローズ', '5/28') +
-      Tile('担当', '梶原')
+      Tile('担当', CONFIG.user.name)
     )}
     ${SecLabel('進行ステップ')}
     ${Timeline([
@@ -444,6 +444,7 @@ function openUser(name, email, role) {
 }
 
 function openReport(title) {
+  const k = window.getMetrics ? getMetrics() : { actual:6840000, target:10000000, forecast:9200000, momGrowth:14.2, achievement:.684, projected:.92 };
   DRAWER.open(`レポート: ${title}`, `
     <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">2026 年 5 月度</div>
     ${Grid4(
@@ -454,11 +455,11 @@ function openReport(title) {
     )}
     ${SecLabel('サマリー')}
     <div style="font-size:12.5px;line-height:1.7;color:var(--text-soft)">
-      今月の売上は ¥6,840,000 で前月比 +14.2%。VIP・リピート顧客の購買が牽引し、AI 接客経由の注文が全体の 58% を占めています。AI 予測では月末 ¥9.2M 着地、目標達成率 92%。
+      今月の売上は ${yen(k.actual)} で前月比 +${k.momGrowth.toFixed(1)}%。VIP・リピート顧客の購買が牽引し、AI 接客経由の注文が全体の 58% を占めています。AI 予測では月末 ${yenM(k.forecast)} 着地、目標達成率 ${(k.projected*100).toFixed(0)}%（達成率 ${(k.achievement*100).toFixed(1)}%）。
     </div>
     ${SecLabel('主要指標')}
     <div style="display:flex;flex-direction:column;gap:8px">
-      ${[['EC 売上','¥6.84M','+14.2%','var(--success)'],['平均単価','¥41,200','+8.4%','var(--success)'],['CVR','4.8%','-0.3%','var(--danger)'],['AI 接客率','58%','+12%','var(--success)']].map(([l,v,d,c])=>`
+      ${[['EC 売上',yenM(k.actual),'+'+k.momGrowth.toFixed(1)+'%','var(--success)'],['平均単価','¥41,200','+8.4%','var(--success)'],['CVR','4.8%','-0.3%','var(--danger)'],['AI 接客率','58%','+12%','var(--success)']].map(([l,v,d,c])=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fafbfd;border:1px solid var(--border);border-radius:10px;font-size:12.5px">
           <span>${l}</span>
           <div><span style="font-weight:600">${v}</span> <span style="color:${c};margin-left:8px;font-size:11.5px">${d}</span></div>

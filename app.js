@@ -2,6 +2,94 @@
 const $ = (q, p = document) => p.querySelector(q);
 const $$ = (q, p = document) => Array.from(p.querySelectorAll(q));
 const yen = n => '¥' + n.toLocaleString();
+const yenM = n => { const v = n / 1e6; return '¥' + (Number.isInteger(v) ? v : +v.toFixed(2)) + 'M'; };
+
+/* ===== Clock / greeting (item 4) ===== */
+function clockStr(d) { return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
+function greeting(d = new Date()) {
+  const h = d.getHours();
+  return h < 5 ? 'こんばんは' : h < 11 ? 'おはようございます' : h < 18 ? 'こんにちは' : 'こんばんは';
+}
+function jpDate(d = new Date()) {
+  const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${w}曜日`;
+}
+
+/* ===== Finance — single source of derived numbers (item 6) =====
+   達成率・着地見込率はすべて actual/target・forecast/target から導出。
+   KPI・月商チャート・レポートが同じ値を参照するので相互に矛盾しない。 */
+function computeFinance() {
+  const f = CONFIG.finance;
+  return { target: f.target, actual: f.actual, forecast: f.forecast, momGrowth: f.momGrowth, pastMonths: f.pastMonths };
+}
+function baseMetrics() {
+  const f = computeFinance();
+  return { actual: f.actual, target: f.target, forecast: f.forecast, momGrowth: f.momGrowth, openTasks: 12, aiTasks: 9, manualTasks: 3 };
+}
+function metricsView(m) {
+  m = m || METRICS;
+  return { ...m, achievement: m.actual / m.target, projected: m.forecast / m.target };
+}
+let METRICS = baseMetrics();
+window.getMetrics = () => metricsView();
+
+/* ===== Greeting + KPI rendering (items 4, 6) ===== */
+function refreshGreeting() {
+  const g = $('#dash-greeting'); if (g) g.textContent = `${greeting()}、${CONFIG.user.name.split(' ')[0]}さん`;
+  const d = $('#dash-date');     if (d) d.textContent = `${jpDate()} ・ 今日のダッシュボード`;
+}
+function renderKPIs() {
+  const k = metricsView();
+  const el = $('#kpis'); if (!el) return;
+  const pct = (k.achievement * 100).toFixed(1);
+  el.innerHTML = `
+    <div class="kpi">
+      <div class="kpi-label">今月EC売上</div>
+      <div class="kpi-value">${yen(k.actual)}</div>
+      <div class="kpi-delta up">${Icon('arrowUp', 12)} 前月比 +${k.momGrowth.toFixed(1)}%</div>
+    </div>
+    <div class="kpi featured">
+      <div class="kpi-label" style="color:rgba(255,255,255,.8)">月商目標 達成率</div>
+      <div class="kpi-value">${pct}%</div>
+      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">${yenM(k.actual)} / ${yenM(k.target)}</div>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">未対応タスク</div>
+      <div class="kpi-value">${k.openTasks}</div>
+      <div class="kpi-delta mute"><span class="badge b-ai">AI ${k.aiTasks}件</span> 手動 ${k.manualTasks}件</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">AI 予測 月末着地</div>
+      <div class="kpi-value">${yenM(k.forecast)}</div>
+      <div class="kpi-delta mute">目標比 ${(k.projected * 100).toFixed(0)}%</div>
+    </div>
+  `;
+}
+
+/* ===== 更新 button — perturb live metrics ±数% (item 5) ===== */
+function perturbMetrics() {
+  const jit = (v, pct) => Math.round(v * (1 + (Math.random() * 2 - 1) * pct));
+  METRICS.actual = jit(METRICS.actual, 0.03);
+  METRICS.forecast = jit(METRICS.forecast, 0.03);
+  METRICS.momGrowth = +(METRICS.momGrowth + (Math.random() * 2 - 1) * 1.2).toFixed(1);
+  METRICS.openTasks = Math.max(1, METRICS.openTasks + Math.round((Math.random() * 2 - 1) * 2));
+  METRICS.aiTasks = Math.round(METRICS.openTasks * 0.75);
+  METRICS.manualTasks = Math.max(0, METRICS.openTasks - METRICS.aiTasks);
+}
+function updateRevenueChart() {
+  if (!revChart) return;
+  const k = metricsView(), man = n => Math.round(n / 10000);
+  revChart.data.datasets[0].data[5] = man(k.actual);
+  revChart.data.datasets[1].data[5] = man(k.forecast);
+  revChart.update();
+}
+function pushStreamRow() {
+  const s = STREAM_SAMPLES[Math.floor(Math.random() * STREAM_SAMPLES.length)];
+  streamRows = [{ ...s, time: nowTime(), new: true }, ...streamRows.slice(0, 11)].map((r, i) => ({ ...r, new: i === 0 }));
+  paintStreamRows();
+}
 
 /* ===== Unified mapping ===== */
 function segBadge(s) {
@@ -137,30 +225,10 @@ function renderDashboard() {
       </div>
     `).join('');
   }
-  // KPIs
-  $('#kpis').innerHTML = `
-    <div class="kpi">
-      <div class="kpi-label">今月EC売上</div>
-      <div class="kpi-value">¥6,840,000</div>
-      <div class="kpi-delta up">${Icon('arrowUp',12)} 前月比 +14.2%</div>
-    </div>
-    <div class="kpi featured">
-      <div class="kpi-label" style="color:rgba(255,255,255,.8)">月商目標 達成率</div>
-      <div class="kpi-value">68.4%</div>
-      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">¥6.84M / ¥10M</div>
-      <div class="progress"><div style="width:68.4%"></div></div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">未対応タスク</div>
-      <div class="kpi-value">12</div>
-      <div class="kpi-delta mute"><span class="badge b-ai">AI 9件</span> 手動 3件</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">AI 予測 月末着地</div>
-      <div class="kpi-value">¥9.2M</div>
-      <div class="kpi-delta mute">信頼区間 ±5%</div>
-    </div>
-  `;
+  // Greeting + date (item 4 — current time / weekday)
+  refreshGreeting();
+  // KPIs — all values derived from one metrics object (item 6)
+  renderKPIs();
 
   // AI Agent live activity (the hero)
   $('#agent-stream').innerHTML = `
@@ -224,7 +292,8 @@ let streamTimer = null;
 
 function paintStreamRows() {
   if (!streamRows.length) {
-    streamRows = DATA.AGENT_LOG.slice(0, 8).map((r,i) => ({...r, new: false, _idx: i}));
+    const t0 = Date.now();
+    streamRows = DATA.AGENT_LOG.slice(0, 8).map((r, i) => ({ ...r, time: clockStr(new Date(t0 - i * 78000)), new: false, _idx: i }));
   }
   const sl = $('#stream-list');
   if (!sl) return;
@@ -250,26 +319,20 @@ function paintStreamRows() {
   }).join('');
 }
 
+const STREAM_SAMPLES = [
+  {agent:'接客AI', tool:'search_products', input:'category=ラグ', result:'5件', ms:295, tok:402, status:'success'},
+  {agent:'接客AI', tool:'ar_view',         input:'sku=SOFA-001 部屋に試し置き', result:'AR起動', ms:210, tok:180, status:'success'},
+  {agent:'営業AI', tool:'send_line',       input:'佐藤 美咲', result:'承認待ち', ms:88, tok:240, status:'pending'},
+  {agent:'接客AI', tool:'get_customer',    input:'cid=4', result:'山本 葵', ms:118, tok:312, status:'success'},
+  {agent:'在庫AI', tool:'bigquery_sql',    input:'velocity 7d', result:'6 rows', ms:1820, tok:520, status:'success'},
+  {agent:'営業AI', tool:'create_task',     input:'AR体験リンク送付', result:'TASK-2345 作成', ms:142, tok:380, status:'success'},
+];
 function startAgentSimulation() {
   stopAgentSimulation();
-  streamTimer = setInterval(() => {
-    const samples = [
-      {agent:'接客AI', tool:'search_products', input:'category=ラグ', result:'5件', ms:295, tok:402, status:'success'},
-      {agent:'営業AI', tool:'send_line',       input:'佐藤 美咲', result:'承認待ち', ms:88, tok:240, status:'pending'},
-      {agent:'接客AI', tool:'get_customer',    input:'cid=4', result:'山本 葵', ms:118, tok:312, status:'success'},
-      {agent:'在庫AI', tool:'bigquery_sql',    input:'velocity 7d', result:'6 rows', ms:1820, tok:520, status:'success'},
-      {agent:'営業AI', tool:'create_task',     input:'AR体験リンク送付', result:'TASK-2345 作成', ms:142, tok:380, status:'success'},
-    ];
-    const next = {...samples[Math.floor(Math.random()*samples.length)], time: nowTime(), new: true};
-    streamRows = [next, ...streamRows.slice(0, 11)].map((r,i) => ({...r, new: i===0}));
-    paintStreamRows();
-  }, 3200);
+  streamTimer = setInterval(pushStreamRow, 3200);
 }
 function stopAgentSimulation() { if (streamTimer) { clearInterval(streamTimer); streamTimer = null; } }
-function nowTime() {
-  const d = new Date();
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
-}
+function nowTime() { return clockStr(new Date()); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
 /* ===== Insight card ===== */
@@ -496,22 +559,31 @@ function toast(msg) {
 
 /* ===== Charts ===== */
 let chartsRendered = false;
+let revChart = null;
 function renderCharts() {
   if (chartsRendered) return;
   chartsRendered = true;
   const txt = '#767c95';
   const grid = 'rgba(20,21,42,.06)';
+  const primary = CONFIG.brand.primary, secondary = CONFIG.brand.secondary;
 
-  new Chart($('#revenueChart'), {
+  // Revenue series derived from the SAME metrics as the KPIs (item 6)
+  const k = metricsView(), man = n => Math.round(n / 10000);
+  const past = CONFIG.finance.pastMonths;                       // 過去5ヶ月（万円）
+  const actualSeries = [...past, man(k.actual), null, null, null, null, null, null];
+  const forecastSeries = [null, null, null, null, past[past.length - 1], man(k.forecast), 960, 1000, 1040, 1070, 1100, 1140];
+  const targetSeries = Array(12).fill(man(k.target));
+
+  revChart = new Chart($('#revenueChart'), {
     type: 'line',
     data: {
       labels: ['12月','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月'],
       datasets: [
-        {label:'実績', data:[480,520,610,580,640,684,null,null,null,null,null,null],
-          borderColor:'#6b5cff', backgroundColor:'rgba(107,92,255,.10)', fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor:'#6b5cff'},
-        {label:'AI 予測', data:[null,null,null,null,null,684,780,860,930,980,1020,1080],
-          borderColor:'#06a89e', borderDash:[5,3], fill:false, tension:.35, borderWidth:2, pointRadius:0},
-        {label:'目標', data:Array(12).fill(1000),
+        {label:'実績', data: actualSeries,
+          borderColor: primary, backgroundColor: _hexToRgba(primary, .10), fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor: primary},
+        {label:'AI 予測（着地）', data: forecastSeries,
+          borderColor: secondary, borderDash:[5,3], fill:false, tension:.35, borderWidth:2, pointRadius:0},
+        {label:'目標', data: targetSeries,
           borderColor:'rgba(225,29,72,.45)', borderDash:[2,3], pointRadius:0, fill:false, borderWidth:1.5},
       ]
     },
@@ -528,7 +600,7 @@ function renderCharts() {
     type: 'doughnut',
     data: { labels:['EC','LINE','メール','広告','その他'],
       datasets:[{ data:[42,23,15,12,8],
-        backgroundColor:['#6b5cff','#06a89e','#2563eb','#d97706','#a4a8bd'],
+        backgroundColor:[primary, secondary,'#2563eb','#d97706','#a4a8bd'],
         borderColor:'#ffffff', borderWidth:2 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout:'68%',
       plugins:{ legend:{ position:'right', labels:{ color: txt, font:{size:11}, boxWidth:10, padding:10 } } } }
@@ -556,10 +628,10 @@ function wireStaticElements() {
 
   // Users
   const userRows = [
-    ['棶原','kajiwara@alion.jp','管理者'],
-    ['山田（営業）','yamada@alion.jp','営業'],
-    ['鈴木（CS）','suzuki@alion.jp','CS'],
-    ['田中（開発）','tanaka@alion.jp','開発'],
+    [CONFIG.user.name, CONFIG.user.email, CONFIG.user.role],
+    ['山田（営業）','yamada@seasquare.co.jp','営業'],
+    ['鈴木（CS）','suzuki@seasquare.co.jp','CS'],
+    ['田中（開発）','tanaka@seasquare.co.jp','開発'],
   ];
   $$('#view-users tbody tr').forEach((tr, i) => {
     if (!userRows[i]) return;

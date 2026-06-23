@@ -40,12 +40,12 @@ function openSettings() {
   openModal({
     title: '個人設定',
     subtitle: 'プロファイルとアラート',
-    icon: `<div class="avatar" style="width:36px;height:36px">梶</div>`,
+    icon: `<div class="avatar" style="width:36px;height:36px">${CONFIG.user.initial}</div>`,
     size: 'md',
     body: `
       <div style="display:flex;flex-direction:column;gap:14px">
-        <label class="form-row"><span class="form-lab">表示名</span><input class="input" value="梶原" style="flex:1"></label>
-        <label class="form-row"><span class="form-lab">メール</span><input class="input" value="kajiwara@alion.jp" style="flex:1"></label>
+        <label class="form-row"><span class="form-lab">表示名</span><input class="input" value="${CONFIG.user.name}" style="flex:1"></label>
+        <label class="form-row"><span class="form-lab">メール</span><input class="input" value="${CONFIG.user.email}" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">タイムゾーン</span><select class="select" style="flex:1"><option>Asia/Tokyo (UTC+9)</option><option>America/Los_Angeles</option></select></label>
         <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:6px">通知</span>
           <div style="flex:1;display:flex;flex-direction:column;gap:8px">
@@ -255,7 +255,7 @@ function openNewUserModal() {
     body: `
       <div style="display:flex;flex-direction:column;gap:12px">
         <label class="form-row"><span class="form-lab">氏名</span><input class="input" style="flex:1"></label>
-        <label class="form-row"><span class="form-lab">メール</span><input class="input" type="email" placeholder="@alion.jp" style="flex:1"></label>
+        <label class="form-row"><span class="form-lab">メール</span><input class="input" type="email" placeholder="@seasquare.co.jp" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">権限</span><select class="select" style="flex:1"><option>管理者</option><option>営業</option><option>CS</option><option>開発</option><option>閲覧のみ</option></select></label>
         <label class="form-row"><span class="form-lab">AI 実行</span><select class="select" style="flex:1"><option>承認後に実行</option><option>すべての AI を実行可能</option><option>不可</option></select></label>
       </div>
@@ -269,7 +269,7 @@ function openNewUserModal() {
 
 function openUserEdit(name) {
   const presets = {
-    '梶原':         { email: 'kajiwara', role: '管理者',  ai: 'すべての AI を実行可能' },
+    [CONFIG.user.name]: { email: CONFIG.user.email.split('@')[0], role: CONFIG.user.role, ai: 'すべての AI を実行可能' },
     '山田（営業）': { email: 'yamada',   role: '営業',    ai: '承認後に実行' },
     '鈴木（CS）':   { email: 'suzuki',   role: 'CS',     ai: '承認後に実行' },
     '田中（開発）': { email: 'tanaka',   role: '開発',    ai: 'すべての AI を実行可能' },
@@ -283,7 +283,7 @@ function openUserEdit(name) {
     body: `
       <div style="display:flex;flex-direction:column;gap:12px">
         <label class="form-row"><span class="form-lab">氏名</span><input class="input" value="${name}" style="flex:1"></label>
-        <label class="form-row"><span class="form-lab">メール</span><input class="input" value="${p.email}@alion.jp" style="flex:1"></label>
+        <label class="form-row"><span class="form-lab">メール</span><input class="input" value="${p.email}@seasquare.co.jp" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">権限</span>
           <select class="select" style="flex:1">
             ${['管理者','営業','CS','開発','閲覧のみ'].map(r => `<option ${r===p.role?'selected':''}>${r}</option>`).join('')}
@@ -402,8 +402,18 @@ function bulkRejectAll() {
 }
 
 function refreshDashboard() {
+  const btn = document.querySelector('#view-dashboard .page-head .btn:not(.primary)');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.55'; btn.style.pointerEvents = 'none'; }
   toast('データを再読込中 ...');
-  setTimeout(() => toast('最新化完了'), 700);
+  setTimeout(() => {
+    perturbMetrics();      // 数値を ±数% で微変動（item 5）
+    renderKPIs();          // KPI を再描画
+    updateRevenueChart();  // チャートも同じ値で同期（item 6）
+    refreshGreeting();     // 時間帯表示も更新（item 4）
+    pushStreamRow();       // ライブストリームに新着を1件追加
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.pointerEvents = ''; }
+    toast('最新化完了');
+  }, 700);
 }
 
 function exportCSV(label) {

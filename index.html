@@ -17,20 +17,20 @@
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">A×</div>
+      <div class="brand-mark">S²</div>
       <div style="min-width:0">
         <div class="brand-name" style="white-space:nowrap">AI×CRM Console</div>
-        <div class="brand-sub">アリオン株式会社</div>
+        <div class="brand-sub">シースクエア株式会社</div>
       </div>
     </div>
 
     <nav class="nav" id="nav"></nav>
 
     <div class="user-card">
-      <div class="avatar">梶</div>
+      <div class="avatar">三</div>
       <div style="flex:1;min-width:0">
-        <div class="user-name">梶原（管理者）</div>
-        <div class="user-email">kajiwara@alion.jp</div>
+        <div class="user-name">三浦 慎一（管理者）</div>
+        <div class="user-email">miura@seasquare.co.jp</div>
       </div>
       <button class="icon-btn" title="設定" onclick="openSettings()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
@@ -88,8 +88,8 @@
 
         <div class="page-head">
           <div>
-            <div class="page-title">おはようございます、梶原さん</div>
-            <div class="page-sub">2026/05/20 木曜日 ・ 今日のダッシュボード</div>
+            <div class="page-title" id="dash-greeting">おはようございます、三浦さん</div>
+            <div class="page-sub" id="dash-date">今日のダッシュボード</div>
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn" onclick="refreshDashboard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8"/></svg> 更新</button>
@@ -554,7 +554,7 @@
           <div>
             <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)">
               <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);margin-bottom:6px"><span style="color:var(--accent-hi)">SELECT</span> category, <span style="color:var(--ai)">SUM</span>(views) <span style="color:var(--accent-hi)">FROM</span> access_logs <span style="color:var(--accent-hi)">WHERE</span> date &gt;= '2026-05-13' <span style="color:var(--accent-hi)">GROUP BY</span> category</div>
-              <div style="font-size:11px;color:var(--text-mute)">梶原 ・ 5/19 14:23 ・ 3.2 秒 ・ 12,438 行スキャン</div>
+              <div style="font-size:11px;color:var(--text-mute)">三浦 ・ 5/19 14:23 ・ 3.2 秒 ・ 12,438 行スキャン</div>
             </div>
             <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)">
               <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-soft);margin-bottom:6px"><span style="color:var(--accent-hi)">SELECT</span> customer_id, <span style="color:var(--ai)">SUM</span>(amount) <span style="color:var(--accent-hi)">FROM</span> deals <span style="color:var(--accent-hi)">WHERE</span> stage='won' <span style="color:var(--accent-hi)">GROUP BY</span> customer_id <span style="color:var(--accent-hi)">ORDER BY</span> 2 <span style="color:var(--accent-hi)">DESC LIMIT</span> 100</div>
@@ -664,17 +664,17 @@
               </tr></thead>
               <tbody>
                 <tr>
-                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">梶</div><span style="font-weight:500">梶原</span></div></td>
-                  <td class="cell-mute">kajiwara@alion.jp</td>
+                  <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">三</div><span style="font-weight:500">三浦 慎一</span></div></td>
+                  <td class="cell-mute">miura@seasquare.co.jp</td>
                   <td><span class="badge b-accent">管理者</span></td>
                   <td class="cell-mute">5/20 09:30</td>
                   <td><span style="color:var(--success);font-size:12px">すべて</span></td>
                   <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
-                  <td><button class="btn ghost sm" onclick="openUserEdit('梶原')">編集</button></td>
+                  <td><button class="btn ghost sm" onclick="openUserEdit('三浦 慎一')">編集</button></td>
                 </tr>
                 <tr>
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">山</div><span style="font-weight:500">山田（営業）</span></div></td>
-                  <td class="cell-mute">yamada@alion.jp</td>
+                  <td class="cell-mute">yamada@seasquare.co.jp</td>
                   <td><span class="badge b-info">営業</span></td>
                   <td class="cell-mute">5/20 08:15</td>
                   <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
@@ -683,7 +683,7 @@
                 </tr>
                 <tr>
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">鈴</div><span style="font-weight:500">鈴木（CS）</span></div></td>
-                  <td class="cell-mute">suzuki@alion.jp</td>
+                  <td class="cell-mute">suzuki@seasquare.co.jp</td>
                   <td><span class="badge b-warn">CS</span></td>
                   <td class="cell-mute">5/19 18:42</td>
                   <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
@@ -692,7 +692,7 @@
                 </tr>
                 <tr>
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">田</div><span style="font-weight:500">田中（開発）</span></div></td>
-                  <td class="cell-mute">tanaka@alion.jp</td>
+                  <td class="cell-mute">tanaka@seasquare.co.jp</td>
                   <td><span class="badge b-neutral">開発</span></td>
                   <td class="cell-mute">5/20 02:11</td>
                   <td><span style="color:var(--success);font-size:12px">すべて</span></td>
@@ -721,6 +721,7 @@
   <div class="drawer-body" id="drawer-body"></div>
 </div>
 
+<script src="config.js"></script>
 <script src="data.js"></script>
 <script src="icons.js"></script>
 <script src="app.js"></script>
