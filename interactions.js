@@ -48,6 +48,7 @@ function openSettings() {
         <label class="form-row"><span class="form-lab">メール</span><input class="input" value="${CONFIG.user.email}" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">タイムゾーン</span><select class="select" style="flex:1"><option>Asia/Tokyo (UTC+9)</option><option>America/Los_Angeles</option></select></label>
         <label class="form-row"><span class="form-lab">ロール(デモ)</span><select class="select" style="flex:1" onchange="setRole(this.value);closeModal()">${['管理者','営業','CS'].map(r => `<option ${r===CONFIG.user.role?'selected':''}>${r}</option>`).join('')}</select></label>
+        <label class="form-row"><span class="form-lab">言語 / Lang</span><select class="select" style="flex:1" onchange="setLang(this.value)"><option value="ja" ${window.lang!=='en'?'selected':''}>日本語</option><option value="en" ${window.lang==='en'?'selected':''}>English</option></select></label>
         <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:6px">通知</span>
           <div style="flex:1;display:flex;flex-direction:column;gap:8px">
             <label style="display:flex;align-items:center;gap:8px;font-size:12.5px"><input type="checkbox" class="checkbox" checked> AI 承認待ち</label>
@@ -448,8 +449,19 @@ function refreshDashboard() {
 }
 
 function exportCSV(label) {
-  toast(`${label} を CSV エクスポート中 ...`);
-  setTimeout(() => toast(`${label}.csv をダウンロード`), 700);
+  const sets = {
+    '顧客一覧': () => [['顧客ID', '氏名', 'セグメント', 'LTV予測', '最終購入', '累計', 'チャネル', 'AIスコア'], ...DATA.CUSTOMERS.map(c => [c.id, c.name, c.fseg, c.ltv, c.last, c.count, c.ch, c.score])],
+    '受注一覧': () => [['注文番号', '日時', '顧客', '商品', '金額', '支払', 'ステータス'], ...DATA.ORDERS.map(o => [o.no, o.dt, o.customer, o.item, o.amt, o.pay, o.status])],
+    'AI実行ログ': () => [['時刻', 'エージェント', 'ツール', '入力', '結果', '所要ms', 'トークン', 'ステータス'], ...DATA.AGENT_LOG.map(l => [l.time, l.agent, l.tool, l.input, l.result, l.ms, l.tok, l.status])],
+  };
+  const rows = (sets[label] || sets['顧客一覧'])();
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${label}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast(`${label}.csv をダウンロードしました（${rows.length - 1} 件）`);
 }
 
 function printOrderLabels() {
@@ -614,9 +626,36 @@ function aiReply(q) {
   return `売上・在庫・休眠顧客・承認待ち・リード などについてお答えできます。例:「今月の売上は？」「在庫が少ない商品は？」`;
 }
 
+/* ===== オンボーディング・ツアー ===== */
+const TOUR = [
+  { icon:'sparkles', title:'ようこそ、AI×CRM コンソールへ', body:'家具ECに特化した AI×CRM のデモです。AIエージェントが顧客対応・営業・在庫を自動化し、人は承認するだけ。' },
+  { icon:'terminal', title:'AI エージェントが自動実行', body:'ダッシュボードのライブストリームで、実データへのツール呼び出しをリアルタイム表示。承認待ちはワンクリックで承認/却下できます。' },
+  { icon:'box', title:'家具EC 特化の体験', body:'AR/3Dプレビュー、行動スコアの内訳、Day0/7/30 の育成シナリオ、配信カレンダーまで。長期検討の家具購買に最適化。' },
+  { icon:'flame', title:'AIアシスタント & ⌘K 検索', body:'右下のボタンで AI に質問、⌘K で全データを横断検索。さっそくお試しください。' },
+];
+let tourStep = 0;
+function showOnboarding() { tourStep = 0; renderTour(); }
+function renderTour() {
+  const t = TOUR[tourStep];
+  openModal({
+    title: t.title, size: 'md',
+    icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--accent-bg);color:var(--accent-hi);display:grid;place-items:center">${Icon(t.icon, 18)}</div>`,
+    body: `<div style="font-size:13px;line-height:1.85;color:var(--text-soft)">${t.body}</div>
+      <div style="display:flex;gap:6px;margin-top:18px">${TOUR.map((_, i) => `<div style="height:4px;flex:1;border-radius:2px;background:${i <= tourStep ? 'var(--accent)' : 'var(--border)'}"></div>`).join('')}</div>`,
+    footer: `
+      <button class="btn ghost" onclick="finishTour()">スキップ</button>
+      ${tourStep > 0 ? `<button class="btn" onclick="tourNav(-1)">戻る</button>` : ''}
+      ${tourStep < TOUR.length - 1 ? `<button class="btn primary" onclick="tourNav(1)">次へ（${tourStep + 1}/${TOUR.length}）</button>` : `<button class="btn primary" onclick="finishTour()">始める</button>`}
+    `,
+  });
+}
+function tourNav(d) { tourStep = Math.max(0, Math.min(TOUR.length - 1, tourStep + d)); renderTour(); }
+function finishTour() { try { localStorage.setItem('seasquare_onboarded', '1'); } catch (e) {} closeModal(); }
+
 /* Expose globals */
 Object.assign(window, {
   toggleAIChat, aiChatSend, aiAsk, searchPalette,
+  showOnboarding, tourNav, finishTour,
   openSettings, openNotifications, openSearchPalette,
   openNewTaskModal, openNewCustomerModal, openNewDealModal,
   openNewCampaignModal, openNewProductModal, openNewUserModal,

@@ -191,6 +191,28 @@ const ROLE_PAGES = {
   'CS':     ['dashboard','tasks','approvals','customers','orders','insights'],
 };
 
+/* ===== i18n（ナビ・タイトル）EN/JP ===== */
+const I18N = {
+  '今日':'Today', '顧客':'Customers', '商品':'Products', 'AI':'AI', '分析':'Analytics', '設定':'Settings',
+  'Dashboard':'Dashboard', '受信箱':'Inbox', 'AI承認待ち':'Approvals', '商談パイプライン':'Deals',
+  '顧客一覧':'Customers', '見込客（リード）':'Leads', 'キャンペーン':'Campaigns', 'ワークフロー':'Workflows',
+  '配信カレンダー':'Calendar', '受注管理':'Orders', '在庫・商品':'Inventory', 'AI 提案':'AI Insights',
+  'AI 実行ログ':'Agent Log', 'レポート':'Reports', 'BigQuery':'BigQuery', '連携・API':'Integrations', 'ユーザー':'Users',
+  'AI 承認待ち':'Approvals', 'BigQuery 分析':'BigQuery', 'ユーザー・権限':'Users & Roles',
+};
+function T(jp) { return window.lang === 'en' ? (I18N[jp] || jp) : jp; }
+function tagTitles() { $$('.page-title').forEach(el => { if (el.id !== 'dash-greeting' && !el.dataset.ja) el.dataset.ja = el.textContent.trim(); }); }
+function applyLangTitles() { $$('.page-title[data-ja]').forEach(el => el.textContent = T(el.dataset.ja)); }
+function setLang(l) {
+  window.lang = l;
+  try { localStorage.setItem('seasquare_lang', l); } catch (e) {}
+  buildSidebar(); applyLangTitles();
+  const active = (document.querySelector('.page.active') || {}).id;
+  nav(active ? active.replace('view-', '') : 'dashboard');
+  toast(l === 'en' ? 'English' : '日本語');
+}
+window.setLang = setLang;
+
 function nav(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
   $('#view-' + name).classList.add('active');
@@ -198,7 +220,7 @@ function nav(name) {
   const btn = $('#nav-' + name);
   if (btn) btn.classList.add('active');
   const p = PAGES[name];
-  $('#crumbs').innerHTML = `${p.group} <span style="opacity:.5;margin:0 6px">/</span> <span class="now">${p.label}</span>`;
+  $('#crumbs').innerHTML = `${T(p.group)} <span style="opacity:.5;margin:0 6px">/</span> <span class="now">${T(p.label)}</span>`;
   window.scrollTo(0, 0);
   $('#content').scrollTo(0, 0);
   if (name === 'dashboard') {
@@ -228,11 +250,11 @@ function buildSidebar() {
     if (!vis.length) return '';
     return `
     <div class="nav-group ${g==='AI'?'ai-group':''}">
-      <p class="nav-label">${g}</p>
+      <p class="nav-label">${T(g)}</p>
       ${vis.map(([key, ic, ct, ctc]) => `
         <button class="nav-item" id="nav-${key}" onclick="nav('${key}')">
           <span class="ic">${Icon(ic, 16)}</span>
-          <span>${PAGES[key].label}</span>
+          <span>${T(PAGES[key].label)}</span>
           ${ct ? `<span class="ct ${ctc||''}">${ct}</span>` : ''}
         </button>
       `).join('')}
@@ -917,6 +939,7 @@ function saveState() {
       approvals: DATA.APPROVALS.map(a => a.content),
       deals: DATA.DEALS_BOARD.map(c => ({ key: c.key, items: c.items })),
       inv: DATA.INVENTORY.map(p => ({ sku: p.sku, stock: p.stock })),
+      orders: DATA.ORDERS.map(o => ({ no: o.no, status: o.status })),
     }));
   } catch (e) {}
 }
@@ -928,6 +951,7 @@ function loadState() {
     if (Array.isArray(s.approvals)) DATA.APPROVALS = DATA.APPROVALS.filter(a => s.approvals.includes(a.content));
     if (s.deals) s.deals.forEach(sc => { const c = DATA.DEALS_BOARD.find(x => x.key === sc.key); if (c && Array.isArray(sc.items)) c.items = sc.items; });
     if (s.inv) s.inv.forEach(si => { const p = DATA.INVENTORY.find(x => x.sku === si.sku); if (p && typeof si.stock === 'number') p.stock = si.stock; });
+    if (s.orders) s.orders.forEach(so => { const o = DATA.ORDERS.find(x => x.no === so.no); if (o && so.status) o.status = so.status; });
   } catch (e) {}
 }
 function resetDemo() { try { localStorage.removeItem(STORE_KEY); } catch (e) {} location.reload(); }
@@ -969,6 +993,18 @@ function completeTask(id) {
   saveState(); renderTasks(); refreshCounts();
   toast('タスクを完了にしました');
 }
+// 出荷処理: 注文ステータスを次へ進める（F1）
+function advanceOrder(no) {
+  const o = DATA.ORDERS.find(x => x.no === no);
+  if (!o) return;
+  const steps = ['新規', '出荷準備中', '出荷済', '配送完了'];
+  const i = steps.indexOf(o.status);
+  if (i < 0 || i >= steps.length - 1) return;
+  o.status = steps[i + 1];
+  saveState(); renderOrders();
+  toast(`${no} を「${o.status}」に更新しました`);
+  if (window.openOrder) openOrder(no);
+}
 // 受注→在庫の引当（F4）
 function decrementStock(sku, orderNo) {
   const p = DATA.INVENTORY.find(x => x.sku === sku);
@@ -1001,6 +1037,7 @@ renderApprovals();
 renderAgentLog();
 wireStaticElements();
 refreshCounts();   // サイドバーのバッジを現在のデータと同期（4a）
+tagTitles(); applyLangTitles();   // ページタイトルを言語に合わせる（i18n）
 
 // Fallback: any unwired button in page-head toasts a placeholder
 document.addEventListener('click', e => {
@@ -1014,3 +1051,6 @@ document.addEventListener('click', e => {
 });
 
 nav('dashboard');
+
+// 初回のみオンボーディング（オンボ済みフラグが無ければ表示）
+try { if (!localStorage.getItem('seasquare_onboarded')) setTimeout(() => { if (window.showOnboarding) showOnboarding(); }, 700); } catch (e) {}

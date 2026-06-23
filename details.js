@@ -382,9 +382,10 @@ function openOrder(no) {
       <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:500">${lp.name}</div><div style="font-size:11px;color:var(--text-mute)">現在庫 <b style="color:${lp.stock<5?'var(--danger)':'var(--text)'}">${lp.stock}</b> 点</div></div>
       <button class="btn sm" onclick="event.stopPropagation();decrementStock('${lp.sku}','${o.no}')">在庫を引当 −1</button>
     </div>` : ''; })()}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
+    ${(cur >= 0 && cur < steps.length - 1) ? `<button class="btn primary lg" style="width:100%;justify-content:center;margin-top:14px" onclick="advanceOrder('${o.no}')">${Icon('truck',13)} 「${steps[cur + 1]}」に進める</button>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <button class="btn" onclick="toast('伝票を印刷')">伝票印刷</button>
-      <button class="btn primary" onclick="toast('追跡情報を表示')" style="justify-content:center">${Icon('truck',13)} 配送追跡</button>
+      <button class="btn" onclick="toast('追跡情報を表示')" style="justify-content:center">${Icon('truck',13)} 配送追跡</button>
     </div>
   `);
 }

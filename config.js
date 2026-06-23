@@ -47,6 +47,8 @@ function applyBranding() {
   try { if (localStorage.getItem('seasquare_theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
   // 保存済みのロールを適用（権限別ビュー）
   try { const rl = localStorage.getItem('seasquare_role'); if (rl) CONFIG.user.role = rl; } catch (e) {}
+  // 保存済みの言語を適用（i18n）
+  try { window.lang = localStorage.getItem('seasquare_lang') || 'ja'; } catch (e) { window.lang = 'ja'; }
 
   // テーマカラー（item 3）— CONFIG.brand.primary/secondary を変えると全体が再スキン
   r.setProperty('--brand-primary', b.primary);
