@@ -883,9 +883,7 @@ function wireStaticElements() {
     if (editBtn) editBtn.onclick = (e) => { e.stopPropagation(); openUser(...userRows[i]); };
   });
 
-  // Bell
-  const bell = $$('header .icon-btn').slice(-1)[0];
-  if (bell) bell.onclick = () => toast('通知: 未読 3 件（AI 承認待ち 4 件、在庫アラート 3 件）');
+  // Bell はインライン onclick="openNotifications()" で開く（上書きしない）
 
   // Filter 「適用」 button (customers) — real furniture-segment filter (item 9)
   $$('.filterbar .btn.primary').forEach(b => b.onclick = applyCustomerFilter);
@@ -921,6 +919,8 @@ function refreshCounts() {
   METRICS.openTasks = open.length; METRICS.aiTasks = ai; METRICS.manualTasks = open.length - ai;
   const set = (id, n) => { const b = document.querySelector('#nav-' + id + ' .ct'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } };
   set('tasks', open.length); set('approvals', DATA.APPROVALS.length); set('leads', DATA.LEADS.length); set('insights', DATA.INSIGHTS.length);
+  const bd = document.querySelector('header .badge-dot');
+  if (bd) { const n = window.notifRead ? 0 : (DATA.APPROVALS.length ? 1 : 0) + (DATA.INVENTORY.filter(p => p.advice === '発注推奨').length ? 1 : 0) + (DATA.LEADS.filter(l => l.score >= 90).length ? 1 : 0); bd.textContent = n; bd.style.display = n > 0 ? '' : 'none'; }
   if ($('#view-dashboard').classList.contains('active')) { renderKPIs(); renderDashboard(); }
 }
 

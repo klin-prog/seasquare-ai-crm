@@ -65,25 +65,31 @@ function openSettings() {
 }
 
 function openNotifications() {
+  const ap = DATA.APPROVALS.length;
+  const low = DATA.INVENTORY.filter(p => p.advice === '発注推奨');
+  const hot = DATA.LEADS.filter(l => l.score >= 90).length;
+  const unread = window.notifRead ? 0 : (ap ? 1 : 0) + (low.length ? 1 : 0) + (hot ? 1 : 0);
+  const ur = window.notifRead ? '' : ' unread';
   DRAWER.open('通知', `
     <div style="padding:16px 20px 0 20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600">未読 (3)</div>
-        <button class="btn ghost sm" onclick="toast('すべて既読')">すべて既読</button>
+        <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600">未読 (${unread})</div>
+        <button class="btn ghost sm" onclick="window.notifRead=true;if(window.refreshCounts)refreshCounts();toast('すべて既読にしました');closeDrawer()">すべて既読</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <div class="notif unread" onclick="closeDrawer();nav('approvals')">
+        ${ap ? `<div class="notif${ur}" onclick="closeDrawer();nav('approvals')">
           <div class="notif-ic" style="background:var(--ai-bg);color:var(--ai)">${Icon('sparkles',14)}</div>
-          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">AI 承認待ち 4 件があります</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">5 分前</div></div>
-        </div>
-        <div class="notif unread" onclick="closeDrawer();showInventoryAlert()">
+          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">AI 承認待ち ${ap} 件があります</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">5 分前</div></div>
+        </div>` : ''}
+        ${low.length ? `<div class="notif${ur}" onclick="closeDrawer();showInventoryAlert()">
           <div class="notif-ic" style="background:var(--danger-bg);color:var(--danger)">${Icon('box',14)}</div>
-          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">在庫切迫: ナチュラルウッドダイニング 残 3 点</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">15 分前</div></div>
-        </div>
-        <div class="notif unread" onclick="closeDrawer();nav('leads')">
+          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">在庫切迫: ${low[0].name} 残 ${low[0].stock} 点</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">15 分前</div></div>
+        </div>` : ''}
+        <div class="notif${ur}" onclick="closeDrawer();nav('leads')">
           <div class="notif-ic" style="background:var(--accent-bg);color:var(--accent-hi)">${Icon('flame',14)}</div>
-          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">高スコアリード 3 名が新着</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">1 時間前</div></div>
+          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">高スコアリード ${hot} 名が新着</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">1 時間前</div></div>
         </div>
+        ${unread ? '' : '<div style="font-size:11.5px;color:var(--text-mute);text-align:center;padding:6px">すべて既読です</div>'}
       </div>
     </div>
     <div style="padding:18px 20px">
