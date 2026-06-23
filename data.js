@@ -115,6 +115,7 @@ window.DATA = {
     {name:'母の日リピート訴求',ch:'LINE',target:'2,318名',open:'72.4%',ctr:'18.2%',cv:'8',rev:'¥640,000',status:'配信中',by:'AI'},
     {name:'ダイニング3点セット紹介',ch:'メール',target:'1,442名',open:'48.1%',ctr:'12.4%',cv:'12',rev:'¥456,000',status:'配信中',by:'AI'},
     {name:'休眠顧客リエンゲージ',ch:'メール',target:'480名',open:'34.2%',ctr:'8.8%',cv:'5',rev:'¥118,000',status:'配信中',by:'AI'},
+    {name:'再入荷SMS通知',ch:'SMS',target:'希望者 312名',open:'-',ctr:'-',cv:'4',rev:'¥96,000',status:'配信中',by:'AI'},
     {name:'夏のラグ特集',ch:'LINE',target:'2,180名',open:'-',ctr:'-',cv:'-',rev:'-',status:'予約',by:CONFIG.user.name},
     {name:'新規会員10%OFF',ch:'メール',target:'新規',open:'-',ctr:'-',cv:'-',rev:'-',status:'予約',by:'AI'},
     {name:'秋冬カーテン早期予約',ch:'LINE',target:'検討中',open:'-',ctr:'-',cv:'-',rev:'-',status:'下書き',by:CONFIG.user.name},
@@ -189,6 +190,7 @@ window.DATA = {
       {type:'wait',    label:'7日待機'},
       {type:'branch',  label:'開封した？'},
       {type:'send',    label:'未開封 → LINE で再アプローチ'},
+      {type:'send',    label:'Day14: SMS で最終案内'},
       {type:'goal',    label:'再購入 / 配信停止'},
     ]},
     {id:'wf-cart', name:'カート放棄リカバリ', trigger:'カート保留 24 時間', status:'一時停止', enrolled:64, cvr:'18.6%', nodes:[

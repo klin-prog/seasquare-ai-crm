@@ -652,23 +652,43 @@ const EMAIL_TEMPLATES = [
   { name:'ウェルカム',       accent:'#06a89e', heading:'ご登録ありがとうございます', body:'はじめてのお買い物に使える 10%OFF クーポンをお届けします。', cta:'クーポンを使う' },
 ];
 let emailTpl = 0;
+let emailDraft = { subject: '【シースクエア】新作のご案内', heading: EMAIL_TEMPLATES[0].heading, body: EMAIL_TEMPLATES[0].body, cta: EMAIL_TEMPLATES[0].cta, accent: EMAIL_TEMPLATES[0].accent };
+const EMAIL_ACCENTS = ['#6b5cff', '#06a89e', '#e11d48', '#d97706', '#2563eb'];
+function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+function emailPreviewHTML() {
+  const t = emailDraft;
+  return `
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#ffffff;box-shadow:var(--shadow-1)">
+      <div style="height:8px;background:${t.accent}"></div>
+      <div style="padding:16px 18px">
+        <div style="font-size:11px;color:#8a90a6;margin-bottom:3px">件名: ${t.subject || ''}</div>
+        <div style="font-size:11px;color:#8a90a6;margin-bottom:10px">シースクエア株式会社</div>
+        <div style="height:96px;border-radius:8px;background:linear-gradient(160deg,#eef1f8,#e3e7f2);display:grid;place-items:center;color:${t.accent};margin-bottom:12px"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg></div>
+        <div style="font-size:16px;font-weight:700;color:#14152a;line-height:1.4">${t.heading || ''}</div>
+        <div style="font-size:12.5px;color:#4a4f6a;line-height:1.7;margin:9px 0 14px;white-space:pre-wrap">${t.body || ''}</div>
+        <div style="text-align:center"><span style="display:inline-block;background:${t.accent};color:#fff;font-weight:600;font-size:13px;padding:9px 20px;border-radius:8px">${t.cta || ''}</span></div>
+        <div style="font-size:10.5px;color:#a4a8bd;text-align:center;margin-top:16px;border-top:1px solid #ebedf3;padding-top:12px">© シースクエア株式会社 ・ <span style="text-decoration:underline">配信停止</span></div>
+      </div>
+    </div>`;
+}
+function emailUpdate(field, val) { emailDraft[field] = val; const p = document.getElementById('email-preview'); if (p) p.innerHTML = emailPreviewHTML(); }
 function emailTplBody() {
-  const t = EMAIL_TEMPLATES[emailTpl];
+  const t = emailDraft;
   const steps = [['Day 0','ウェルカム + 10%OFFクーポン','メール'],['Day 3','閲覧商品のリマインド + AR','LINE'],['Day 7','コーディネート提案','メール'],['Day 30','再来訪クーポン','SMS']];
   return `
-    <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">HTMLメールテンプレート</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      ${EMAIL_TEMPLATES.map((x, i) => `<button class="btn ${i===emailTpl?'primary':''} sm" onclick="selectEmailTpl(${i})">${x.name}</button>`).join('')}
-    </div>
-    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:420px;margin:0 auto;background:#ffffff;box-shadow:var(--shadow-1)">
-      <div style="height:8px;background:${t.accent}"></div>
-      <div style="padding:18px 20px">
-        <div style="font-size:12px;color:#8a90a6;margin-bottom:10px">シースクエア株式会社</div>
-        <div style="height:120px;border-radius:8px;background:linear-gradient(160deg,#eef1f8,#e3e7f2);display:grid;place-items:center;color:${t.accent};margin-bottom:14px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg></div>
-        <div style="font-size:17px;font-weight:700;color:#14152a;line-height:1.4">${t.heading}</div>
-        <div style="font-size:13px;color:#4a4f6a;line-height:1.7;margin:10px 0 16px">${t.body}</div>
-        <div style="text-align:center"><span style="display:inline-block;background:${t.accent};color:#fff;font-weight:600;font-size:13px;padding:10px 22px;border-radius:8px">${t.cta}</span></div>
-        <div style="font-size:10.5px;color:#a4a8bd;text-align:center;margin-top:18px;border-top:1px solid #ebedf3;padding-top:12px">© シースクエア株式会社 ・ <span style="text-decoration:underline">配信停止</span></div>
+    <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">テンプレート（クリックで読み込み）</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${EMAIL_TEMPLATES.map((x, i) => `<button class="btn ${i===emailTpl?'primary':''} sm" onclick="selectEmailTpl(${i})">${x.name}</button>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:var(--text-mute)">件名</span><input class="input" value="${escAttr(t.subject)}" oninput="emailUpdate('subject',this.value)"></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:var(--text-mute)">見出し</span><input class="input" value="${escAttr(t.heading)}" oninput="emailUpdate('heading',this.value)"></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:var(--text-mute)">本文</span><textarea class="input" rows="5" style="padding:8px 11px;resize:vertical" oninput="emailUpdate('body',this.value)">${t.body}</textarea></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:var(--text-mute)">CTAボタン</span><input class="input" value="${escAttr(t.cta)}" oninput="emailUpdate('cta',this.value)"></label>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text-mute)">アクセント</span>${EMAIL_ACCENTS.map(c => `<button onclick="emailUpdate('accent','${c}')" title="${c}" style="width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);background:${c};cursor:pointer;padding:0"></button>`).join('')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px">プレビュー(HTMLメール)</div>
+        <div id="email-preview">${emailPreviewHTML()}</div>
       </div>
     </div>
     <div style="font-size:11px;color:var(--text-mute);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin:20px 0 10px">ステップメール（自動連載）</div>
@@ -681,14 +701,19 @@ function emailTplBody() {
         </div>`).join('')}
     </div>`;
 }
-function selectEmailTpl(i) { emailTpl = i; const b = document.querySelector('#__modal .modal-body'); if (b) b.innerHTML = emailTplBody(); }
+function selectEmailTpl(i) {
+  emailTpl = i; const x = EMAIL_TEMPLATES[i];
+  emailDraft.heading = x.heading; emailDraft.body = x.body; emailDraft.cta = x.cta; emailDraft.accent = x.accent;
+  const b = document.querySelector('#__modal .modal-body'); if (b) b.innerHTML = emailTplBody();
+}
 function openEmailTemplates() {
   emailTpl = 0;
+  emailDraft = { subject: '【シースクエア】新作のご案内', heading: EMAIL_TEMPLATES[0].heading, body: EMAIL_TEMPLATES[0].body, cta: EMAIL_TEMPLATES[0].cta, accent: EMAIL_TEMPLATES[0].accent };
   openModal({
-    title: 'メールテンプレート', subtitle: 'HTMLメール / ステップメール', size: 'lg',
+    title: 'メールテンプレート', subtitle: 'HTMLメール 編集 + ライブプレビュー', size: 'lg',
     icon: `<div style="width:36px;height:36px;border-radius:9px;background:var(--info-bg);color:var(--info);display:grid;place-items:center">${Icon('mail',18)}</div>`,
     body: emailTplBody(),
-    footer: `<button class="btn ghost" onclick="closeModal()">閉じる</button><button class="btn primary" onclick="toast('このテンプレートで作成します');closeModal()">このテンプレで作成</button>`,
+    footer: `<button class="btn ghost" onclick="closeModal()">閉じる</button><button class="btn" onclick="toast('テストメールを送信しました')">テスト送信</button><button class="btn primary" onclick="toast('テンプレートを保存しました');closeModal()">保存</button>`,
   });
 }
 
