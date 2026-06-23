@@ -47,6 +47,7 @@ function openSettings() {
         <label class="form-row"><span class="form-lab">表示名</span><input class="input" value="${CONFIG.user.name}" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">メール</span><input class="input" value="${CONFIG.user.email}" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">タイムゾーン</span><select class="select" style="flex:1"><option>Asia/Tokyo (UTC+9)</option><option>America/Los_Angeles</option></select></label>
+        <label class="form-row"><span class="form-lab">ロール(デモ)</span><select class="select" style="flex:1" onchange="setRole(this.value);closeModal()">${['管理者','営業','CS'].map(r => `<option ${r===CONFIG.user.role?'selected':''}>${r}</option>`).join('')}</select></label>
         <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:6px">通知</span>
           <div style="flex:1;display:flex;flex-direction:column;gap:8px">
             <label style="display:flex;align-items:center;gap:8px;font-size:12.5px"><input type="checkbox" class="checkbox" checked> AI 承認待ち</label>

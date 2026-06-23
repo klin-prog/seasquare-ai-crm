@@ -45,6 +45,8 @@ function applyBranding() {
   const b = CONFIG.brand, u = CONFIG.user, r = document.documentElement.style;
   // 保存済みのダーク/ライト設定を適用（4d）
   try { if (localStorage.getItem('seasquare_theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+  // 保存済みのロールを適用（権限別ビュー）
+  try { const rl = localStorage.getItem('seasquare_role'); if (rl) CONFIG.user.role = rl; } catch (e) {}
 
   // テーマカラー（item 3）— CONFIG.brand.primary/secondary を変えると全体が再スキン
   r.setProperty('--brand-primary', b.primary);

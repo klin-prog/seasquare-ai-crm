@@ -184,6 +184,13 @@ const PAGES = {
   users:      { label: 'ユーザー', group: '設定' },
 };
 
+// ロール別の表示ページ（null=全て・権限別ビュー）
+const ROLE_PAGES = {
+  '管理者': null,
+  '営業':   ['dashboard','tasks','approvals','deals','customers','leads','campaigns','workflows','calendar','orders','insights','reports','analytics'],
+  'CS':     ['dashboard','tasks','approvals','customers','orders','insights'],
+};
+
 function nav(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
   $('#view-' + name).classList.add('active');
@@ -214,20 +221,32 @@ function buildSidebar() {
     '分析':   [['reports','chart'],['analytics','db']],
     '設定':   [['integrations','plug'],['users','user']],
   };
+  const allowed = ROLE_PAGES[CONFIG.user.role];   // null = 全ページ
   const nav = $('#nav');
-  nav.innerHTML = Object.entries(groups).map(([g, items]) => `
+  nav.innerHTML = Object.entries(groups).map(([g, items]) => {
+    const vis = items.filter(([key]) => !allowed || allowed.includes(key));
+    if (!vis.length) return '';
+    return `
     <div class="nav-group ${g==='AI'?'ai-group':''}">
       <p class="nav-label">${g}</p>
-      ${items.map(([key, ic, ct, ctc]) => `
+      ${vis.map(([key, ic, ct, ctc]) => `
         <button class="nav-item" id="nav-${key}" onclick="nav('${key}')">
           <span class="ic">${Icon(ic, 16)}</span>
           <span>${PAGES[key].label}</span>
           ${ct ? `<span class="ct ${ctc||''}">${ct}</span>` : ''}
         </button>
       `).join('')}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
+function setRole(r) {
+  CONFIG.user.role = r;
+  try { localStorage.setItem('seasquare_role', r); } catch (e) {}
+  const un = document.querySelector('.user-card .user-name'); if (un) un.textContent = `${CONFIG.user.name}（${r}）`;
+  buildSidebar(); refreshCounts(); nav('dashboard');
+  toast(`ロール: ${r} に切替`);
+}
+window.setRole = setRole;
 
 /* ===== Dashboard ===== */
 function renderDashboard() {
@@ -897,6 +916,7 @@ function saveState() {
       tasks: DATA.TASKS.map(t => ({ id: t.id, status: t.status })),
       approvals: DATA.APPROVALS.map(a => a.content),
       deals: DATA.DEALS_BOARD.map(c => ({ key: c.key, items: c.items })),
+      inv: DATA.INVENTORY.map(p => ({ sku: p.sku, stock: p.stock })),
     }));
   } catch (e) {}
 }
@@ -907,6 +927,7 @@ function loadState() {
     if (s.tasks) s.tasks.forEach(st => { const t = DATA.TASKS.find(x => x.id === st.id); if (t) t.status = st.status; });
     if (Array.isArray(s.approvals)) DATA.APPROVALS = DATA.APPROVALS.filter(a => s.approvals.includes(a.content));
     if (s.deals) s.deals.forEach(sc => { const c = DATA.DEALS_BOARD.find(x => x.key === sc.key); if (c && Array.isArray(sc.items)) c.items = sc.items; });
+    if (s.inv) s.inv.forEach(si => { const p = DATA.INVENTORY.find(x => x.sku === si.sku); if (p && typeof si.stock === 'number') p.stock = si.stock; });
   } catch (e) {}
 }
 function resetDemo() { try { localStorage.removeItem(STORE_KEY); } catch (e) {} location.reload(); }
@@ -947,6 +968,16 @@ function completeTask(id) {
   t.status = '完了';
   saveState(); renderTasks(); refreshCounts();
   toast('タスクを完了にしました');
+}
+// 受注→在庫の引当（F4）
+function decrementStock(sku, orderNo) {
+  const p = DATA.INVENTORY.find(x => x.sku === sku);
+  if (!p) return;
+  if (p.stock <= 0) { toast('在庫がありません'); return; }
+  p.stock -= 1;
+  saveState(); renderInventory();
+  toast(`${p.name} の在庫を引当（残 ${p.stock} 点）`);
+  if (orderNo && window.openOrder) openOrder(orderNo);
 }
 
 /* ===== Boot ===== */

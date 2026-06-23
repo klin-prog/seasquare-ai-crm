@@ -196,6 +196,40 @@ function openCoordinate(id) {
 }
 window.openCoordinate = openCoordinate;
 
+/* 注文履歴（顧客連動・F1） */
+function orderHistoryHTML(name) {
+  const orders = DATA.ORDERS.filter(o => o.customer === name);
+  if (!orders.length) return `<div style="font-size:12px;color:var(--text-mute);padding:4px 0">注文履歴はありません</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:6px">${orders.map(o => `
+    <div onclick="closeDrawer();openOrder('${o.no}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12.5px">
+      <span class="cell-mono" style="color:var(--text-mute);font-size:11px">${o.dt}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.item}</span>
+      <span style="font-weight:600">${yen(o.amt)}</span>
+      ${statusBadge(o.status)}
+    </div>`).join('')}</div>`;
+}
+
+/* 関連商品レコメンド（F2） — カテゴリ補完ルール */
+const PRODUCT_COMPLEMENT = { 'ソファ':['ラグ','テーブル','照明'], 'テーブル':['チェア','照明','ラグ'], 'チェア':['テーブル','照明'], '照明':['ソファ','テーブル'], 'ラグ':['ソファ','カーテン'], 'カーテン':['ラグ','照明'] };
+function relatedProductsHTML(p) {
+  const wantCats = PRODUCT_COMPLEMENT[p.cat] || [];
+  let rel = DATA.INVENTORY.filter(x => x.sku !== p.sku && wantCats.includes(x.cat));
+  if (rel.length < 3) rel = rel.concat(DATA.INVENTORY.filter(x => x.sku !== p.sku && !rel.includes(x)));
+  rel = rel.slice(0, 3);
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${rel.map(x => `
+    <div onclick="openProduct('${x.sku}')" style="border:1px solid var(--border);border-radius:9px;overflow:hidden;cursor:pointer">
+      <div style="height:60px;background:linear-gradient(160deg,#eef1f8,#e3e7f2);display:grid;place-items:center;color:var(--brand-primary)">${Icon('box',22)}</div>
+      <div style="padding:8px"><div style="font-size:11px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.name}</div><div style="font-size:11px;color:var(--text-mute);margin-top:2px">${yen(x.price)}</div></div>
+    </div>`).join('')}</div>`;
+}
+
+/* 受注→在庫連動: 商品名から在庫SKUを推定（F4） */
+function linkedProduct(itemText) {
+  const kw = [['ソファ','SOFA-001'],['ダイニング','TABLE-001'],['テーブル','TABLE-001'],['ラグ','RUG-001'],['チェア','CHAIR-001'],['カーテン','CURTAIN-001'],['ペンダント','LAMP-002'],['ランプ','LAMP-001'],['ライト','LAMP-002'],['照明','LAMP-001']];
+  for (const [k, sku] of kw) if (itemText.includes(k)) return DATA.INVENTORY.find(p => p.sku === sku);
+  return null;
+}
+
 /* ===== Detail renderers ===== */
 function openCustomer(id) {
   const c = DATA.CUSTOMERS.find(x => x.id === id);
@@ -226,6 +260,8 @@ function openCustomer(id) {
         ? `<div style="color:var(--danger);font-weight:600;display:flex;align-items:center;gap:6px">${Icon('pause',12)} 配信頻度上限に到達 — 自動配信を抑制中</div>`
         : `<div style="color:var(--success);display:flex;align-items:center;gap:6px">${Icon('check',12)} 配信可能</div>`}
     </div>
+    ${SecLabel('注文履歴')}
+    ${orderHistoryHTML(c.name)}
     ${SecLabel('AI 推奨アクション')}
     <div class="insight" style="padding:14px">
       <div class="insight-ic">${Icon('sparkles',16)}</div>
@@ -340,6 +376,12 @@ function openOrder(no) {
       <tr style="color:var(--text-mute)"><td style="padding:6px 0">送料</td><td style="text-align:right">無料</td></tr>
       <tr style="border-top:1px solid var(--border)"><td style="padding:8px 0;font-weight:600">合計</td><td style="text-align:right;font-weight:700">${yen(o.amt)}</td></tr>
     </table>
+    ${(() => { const lp = linkedProduct(o.item); return lp ? `${SecLabel('在庫連動')}
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px">
+      <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-elev);border:1px solid var(--border);display:grid;place-items:center;color:var(--text-mute)">${Icon('box',16)}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:500">${lp.name}</div><div style="font-size:11px;color:var(--text-mute)">現在庫 <b style="color:${lp.stock<5?'var(--danger)':'var(--text)'}">${lp.stock}</b> 点</div></div>
+      <button class="btn sm" onclick="event.stopPropagation();decrementStock('${lp.sku}','${o.no}')">在庫を引当 −1</button>
+    </div>` : ''; })()}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="toast('伝票を印刷')">伝票印刷</button>
       <button class="btn primary" onclick="toast('追跡情報を表示')" style="justify-content:center">${Icon('truck',13)} 配送追跡</button>
@@ -370,6 +412,8 @@ function openProduct(sku) {
     ${SecLabel('対応コンテンツ')}
     <div style="display:flex;gap:8px"><span class="badge b-accent">${p.ar}</span></div>
     ${p.advice!=='-' ? `${SecLabel('AI 推奨')}<div class="insight" style="padding:14px"><div class="insight-ic">${Icon('lightbulb',16)}</div><div><h4 style="font-size:13px">${p.advice}</h4><p style="font-size:12px">直近 7 日の閲覧+88%。在庫切迫リスクあり。発注ロット 20 点を推奨。</p></div></div>`:''}
+    ${SecLabel('関連商品（AI レコメンド）')}
+    ${relatedProductsHTML(p)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="toast('編集モード')" style="justify-content:center">${Icon('edit',13)} 編集</button>
       <button class="btn primary" onclick="closeDrawer();openPurchaseDraft('${p.sku}')" style="justify-content:center">${Icon('package',13)} 発注</button>
