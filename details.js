@@ -231,7 +231,7 @@ function openTask(id) {
     ])}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
       <button class="btn" onclick="toast('タスクを保留');closeDrawer()">保留</button>
-      <button class="btn primary" onclick="toast('タスク完了');closeDrawer()" style="justify-content:center">${Icon('check',13)} 完了にする</button>
+      <button class="btn primary" onclick="completeTask(${t.id});closeDrawer()" style="justify-content:center">${Icon('check',13)} 完了にする</button>
     </div>
   `);
 }

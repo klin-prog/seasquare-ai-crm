@@ -25,7 +25,9 @@ function computeFinance() {
 }
 function baseMetrics() {
   const f = computeFinance();
-  return { actual: f.actual, target: f.target, forecast: f.forecast, momGrowth: f.momGrowth, openTasks: 12, aiTasks: 9, manualTasks: 3 };
+  const open = DATA.TASKS.filter(t => t.status === '未対応');
+  const ai = open.filter(t => t.source === 'AI').length;
+  return { actual: f.actual, target: f.target, forecast: f.forecast, momGrowth: f.momGrowth, openTasks: open.length, aiTasks: ai, manualTasks: open.length - ai };
 }
 function metricsView(m) {
   m = m || METRICS;
@@ -195,11 +197,12 @@ function nav(name) {
 
 /* ===== Sidebar ===== */
 function buildSidebar() {
+  const openTasks = DATA.TASKS.filter(t => t.status === '未対応').length;
   const groups = {
-    '今日':   [['dashboard','home'],['tasks','inbox', 12],['approvals','shield', 4, 'urgent'],['deals','deal']],
-    '顧客':   [['customers','users'],['leads','flame', 7, 'urgent'],['campaigns','mail'],['workflows','zap']],
+    '今日':   [['dashboard','home'],['tasks','inbox', openTasks],['approvals','shield', DATA.APPROVALS.length, 'urgent'],['deals','deal']],
+    '顧客':   [['customers','users'],['leads','flame', DATA.LEADS.length, 'urgent'],['campaigns','mail'],['workflows','zap']],
     '商品':   [['orders','box'],['inventory','store']],
-    'AI':     [['insights','sparkles', 4, 'ai'],['agent-log','terminal']],
+    'AI':     [['insights','sparkles', DATA.INSIGHTS.length, 'ai'],['agent-log','terminal']],
     '分析':   [['reports','chart'],['analytics','db']],
     '設定':   [['integrations','plug'],['users','user']],
   };
@@ -497,7 +500,7 @@ function dealDrop(e, toKey) {
   const item = from.items.splice(+idxS, 1)[0];
   if (!item) return;
   to.items.push(item);
-  renderDeals();
+  renderDeals(); saveState();
   toast(`${item.c}「${item.t}」を「${to.title}」へ移動`);
 }
 
@@ -683,7 +686,7 @@ function renderInsights() {
 /* ===== Approvals ===== */
 function renderApprovals() {
   const riskCls = {'高':'b-danger','中':'b-warn','低':'b-neutral'};
-  $('#approvals-table tbody').innerHTML = DATA.APPROVALS.map((a,idx) => `
+  const body = DATA.APPROVALS.map((a,idx) => `
     <tr class="clickable" onclick="openApprovalCompose(${idx})">
       <td><span class="badge b-ai">${a.kind}</span></td>
       <td style="font-weight:500">${a.content}</td>
@@ -694,12 +697,13 @@ function renderApprovals() {
       <td class="cell-mute">${a.time}</td>
       <td>
         <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
-          <button class="btn success sm" onclick="confirmDialog({title:'承認・実行',body:'${a.content}',confirmText:'承認',onConfirm:()=>toast('承認しました')})">${Icon('check',12)} 承認</button>
-          <button class="btn ghost sm" onclick="toast('却下しました')">却下</button>
+          <button class="btn success sm" onclick="resolveApproval(${idx},true)">${Icon('check',12)} 承認</button>
+          <button class="btn ghost sm" onclick="resolveApproval(${idx},false)">却下</button>
         </div>
       </td>
     </tr>
   `).join('');
+  $('#approvals-table tbody').innerHTML = body || `<tr><td colspan="8" style="padding:32px;text-align:center;color:var(--text-mute)">${Icon('check',14)} 承認待ちはありません（すべて処理済み）</td></tr>`;
 }
 
 /* ===== Agent log ===== */
@@ -824,10 +828,69 @@ function wireStaticElements() {
   $$('.filterbar .btn.primary').forEach(b => b.onclick = applyCustomerFilter);
 }
 
+/* ===== State persistence + cross-screen reactivity (4a) ===== */
+const STORE_KEY = 'seasquare_crm_v1';
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      tasks: DATA.TASKS.map(t => ({ id: t.id, status: t.status })),
+      approvals: DATA.APPROVALS.map(a => a.content),
+      deals: DATA.DEALS_BOARD.map(c => ({ key: c.key, items: c.items })),
+    }));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!s) return;
+    if (s.tasks) s.tasks.forEach(st => { const t = DATA.TASKS.find(x => x.id === st.id); if (t) t.status = st.status; });
+    if (Array.isArray(s.approvals)) DATA.APPROVALS = DATA.APPROVALS.filter(a => s.approvals.includes(a.content));
+    if (s.deals) s.deals.forEach(sc => { const c = DATA.DEALS_BOARD.find(x => x.key === sc.key); if (c && Array.isArray(sc.items)) c.items = sc.items; });
+  } catch (e) {}
+}
+function resetDemo() { try { localStorage.removeItem(STORE_KEY); } catch (e) {} location.reload(); }
+window.resetDemo = resetDemo;
+
+// バッジ・KPI を現在のデータから再同期（画面間連動の要）
+function refreshCounts() {
+  const open = DATA.TASKS.filter(t => t.status === '未対応');
+  const ai = open.filter(t => t.source === 'AI').length;
+  METRICS.openTasks = open.length; METRICS.aiTasks = ai; METRICS.manualTasks = open.length - ai;
+  const set = (id, n) => { const b = document.querySelector('#nav-' + id + ' .ct'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } };
+  set('tasks', open.length); set('approvals', DATA.APPROVALS.length); set('leads', DATA.LEADS.length); set('insights', DATA.INSIGHTS.length);
+  if ($('#view-dashboard').classList.contains('active')) { renderKPIs(); renderDashboard(); }
+}
+
+// 承認待ちの解決 → 一覧から消し、実行ログに記録、全カウント連動
+function resolveApproval(idx, approved) {
+  const a = DATA.APPROVALS[idx];
+  if (!a) return;
+  DATA.AGENT_LOG.unshift({ time: nowTime(), agent: '営業AI', tool: approved ? 'execute_action' : 'reject_action', input: a.content.slice(0, 28), result: approved ? '承認・実行' : '却下', ms: 95, tok: 210, status: approved ? 'success' : 'error' });
+  DATA.APPROVALS.splice(idx, 1);
+  saveState(); renderApprovals(); renderAgentLog(); refreshCounts();
+  toast(approved ? '承認・実行しました' : '却下しました');
+}
+function resolveAllApprovals(approved) {
+  const n = DATA.APPROVALS.length;
+  DATA.APPROVALS.forEach(a => DATA.AGENT_LOG.unshift({ time: nowTime(), agent: '営業AI', tool: approved ? 'execute_action' : 'reject_action', input: a.content.slice(0, 28), result: approved ? '承認・実行' : '却下', ms: 95, tok: 210, status: approved ? 'success' : 'error' }));
+  DATA.APPROVALS = [];
+  saveState(); renderApprovals(); renderAgentLog(); refreshCounts();
+  toast(`${n} 件を${approved ? '承認・実行' : '却下'}しました`);
+}
+// タスク完了 → 完了タブへ移動、受信箱バッジ/KPI連動
+function completeTask(id) {
+  const t = DATA.TASKS.find(x => x.id === id);
+  if (!t) return;
+  t.status = '完了';
+  saveState(); renderTasks(); refreshCounts();
+  toast('タスクを完了にしました');
+}
+
 /* ===== Boot ===== */
-// スコアは行動から導出（item 7）— ここで一元計算しておく
+loadState();                                    // 保存済み状態を復元（4a）
 DATA.LEADS.forEach(l => l.score = leadScore(l.acts));
 DATA.CUSTOMERS.forEach(c => c.score = leadScore(c.acts));
+METRICS = baseMetrics();                         // 復元後のタスク状態でKPIを再計算
 buildSidebar();
 renderDashboard();
 renderCustomers();
@@ -842,6 +905,7 @@ renderInsights();
 renderApprovals();
 renderAgentLog();
 wireStaticElements();
+refreshCounts();   // サイドバーのバッジを現在のデータと同期（4a）
 
 // Fallback: any unwired button in page-head toasts a placeholder
 document.addEventListener('click', e => {

@@ -58,7 +58,7 @@ function openSettings() {
     `,
     footer: `
       <button class="btn ghost" onclick="closeModal()">キャンセル</button>
-      <button class="btn" onclick="confirmDialog({title:'ログアウト',body:'ログアウトしますか？',kind:'danger',confirmText:'ログアウト',onConfirm:()=>toast('ログアウトしました')})">ログアウト</button>
+      <button class="btn ghost" onclick="confirmDialog({title:'デモをリセット',body:'承認・タスク・商談などの変更を初期状態に戻します。',kind:'danger',confirmText:'リセット',onConfirm:resetDemo})">デモをリセット</button>
       <button class="btn primary" onclick="toast('設定を保存しました');closeModal()">保存</button>
     `,
   });
@@ -381,22 +381,15 @@ function bulkAIApproach() {
 }
 
 function bulkApproveAll() {
-  confirmDialog({
-    title: 'すべての提案を承認',
-    body: '4 件の AI 提案をまとめて承認・実行します。',
-    confirmText: 'すべて承認',
-    onConfirm: () => toast('4 件を承認・実行しました'),
-  });
+  const n = DATA.APPROVALS.length;
+  if (!n) return toast('承認待ちはありません');
+  confirmDialog({ title: 'すべての提案を承認', body: `${n} 件の AI 提案をまとめて承認・実行します。`, confirmText: 'すべて承認', onConfirm: () => resolveAllApprovals(true) });
 }
 
 function bulkRejectAll() {
-  confirmDialog({
-    title: 'すべての提案を却下',
-    body: '4 件の AI 提案をすべて却下します。',
-    kind: 'danger',
-    confirmText: 'すべて却下',
-    onConfirm: () => toast('4 件を却下しました'),
-  });
+  const n = DATA.APPROVALS.length;
+  if (!n) return toast('承認待ちはありません');
+  confirmDialog({ title: 'すべての提案を却下', body: `${n} 件の AI 提案をすべて却下します。`, kind: 'danger', confirmText: 'すべて却下', onConfirm: () => resolveAllApprovals(false) });
 }
 
 function refreshDashboard() {
@@ -464,6 +457,7 @@ function showInventoryAlert() {
 function openApprovalCompose(ref) {
   const a = (ref && typeof ref === 'object') ? ref : DATA.APPROVALS[ref];
   if (!a) return;
+  const isIdx = typeof ref === 'number';
   const suppressNote = a.kind === 'メール一括送付'
     ? `<div style="font-size:11.5px;color:var(--text-mute);margin-top:8px;display:flex;align-items:center;gap:6px">${Icon('pause',11)} 配信頻度上限に達した顧客は自動で除外されます（過剰配信の抑制）</div>` : '';
   openModal({
@@ -489,8 +483,8 @@ function openApprovalCompose(ref) {
     `,
     footer: `
       <button class="btn ghost" onclick="closeModal()">閉じる</button>
-      <button class="btn danger" onclick="confirmDialog({title:'AI 提案を却下',body:'この提案を却下します。',kind:'danger',confirmText:'却下',onConfirm:()=>{toast('却下しました');closeModal()}})">却下</button>
-      <button class="btn primary" onclick="toast('承認して送信しました');closeModal()">${Icon('check',13)} 承認して送信</button>
+      <button class="btn danger" onclick="${isIdx ? `resolveApproval(${ref},false);closeModal()` : `toast('却下しました');closeModal()`}">却下</button>
+      <button class="btn primary" onclick="${isIdx ? `resolveApproval(${ref},true);closeModal()` : `toast('承認して送信しました');closeModal()`}">${Icon('check',13)} 承認して送信</button>
     `,
   });
 }
