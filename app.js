@@ -664,7 +664,7 @@ function renderCharts() {
   new Chart($('#revenueChart'), {
     type: 'line',
     data: {
-      labels: ['12月','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月'],
+      labels: TODAY.monthLabels12(),
       datasets: [
         {label:'実績', data:[480,520,610,580,640,684,null,null,null,null,null,null],
           borderColor:'#6b5cff', backgroundColor:'rgba(107,92,255,.10)', fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor:'#6b5cff'},

@@ -76,10 +76,10 @@ function openCustomer(id) {
     )}
     ${SecLabel('直近の行動')}
     <div style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:30</span><span>ソファ詳細を閲覧（3回目）</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:24</span><span>AR で部屋に試し置き</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/19 21:18</span><span>お気に入りに追加</span></div>
-      <div style="display:flex;gap:10px"><span class="cell-mono">5/18 14:02</span><span>トップページを訪問</span></div>
+      <div style="display:flex;gap:10px"><span class="cell-mono">${TODAY.short(-1)} 21:30</span><span>ソファ詳細を閲覧（3回目）</span></div>
+      <div style="display:flex;gap:10px"><span class="cell-mono">${TODAY.short(-1)} 21:24</span><span>AR で部屋に試し置き</span></div>
+      <div style="display:flex;gap:10px"><span class="cell-mono">${TODAY.short(-1)} 21:18</span><span>お気に入りに追加</span></div>
+      <div style="display:flex;gap:10px"><span class="cell-mono">${TODAY.short(-2)} 14:02</span><span>トップページを訪問</span></div>
       <div style="display:flex;gap:10px"><span class="cell-mono">${c.last}</span><span>前回購入</span></div>
     </div>
     ${SecLabel('AI 推奨アクション')}
@@ -314,13 +314,13 @@ function openDeal(c, t, a, src) {
     ${Grid4(
       Tile('成約確度', probability+'%', 'var(--accent-hi)') +
       Tile('予測 GP', '¥'+Math.round(a*0.3/1000)+'K') +
-      Tile('クローズ', '5/28') +
+      Tile('クローズ', TODAY.short(8)) +
       Tile('担当', '梶原')
     )}
     ${SecLabel('進行ステップ')}
     ${Timeline([
-      {label:'リード化', time:'5/15', done:true},
-      {label:'検討中', time:'5/18', active:true},
+      {label:'リード化', time:TODAY.short(-5), done:true},
+      {label:'検討中', time:TODAY.short(-2), active:true},
       {label:'提案中'},
       {label:'受注'},
     ])}
@@ -452,7 +452,7 @@ function openUser(name, email, role) {
     ${Grid2(
       Field('権限', role) +
       Field('AI 実行', role==='管理者'||role==='開発'?'すべて':'承認後') +
-      Field('最終ログイン', '5/20 09:30') +
+      Field('最終ログイン', TODAY.short(0) + ' 09:30') +
       Field('登録日', '2024/04/01')
     )}
     ${SecLabel('AI 実行権限')}
@@ -479,9 +479,9 @@ function openUser(name, email, role) {
 
 function openReport(title) {
   DRAWER.open(`レポート: ${title}`, `
-    <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">2026 年 5 月度</div>
+    <div style="font-size:12px;color:var(--text-mute);margin-bottom:14px">${TODAY.year()} 年 ${TODAY.monthNum()} 月度</div>
     ${Grid4(
-      Tile('対象期間', '5/1-20') +
+      Tile('対象期間', `${TODAY.monthNum()}/1-${TODAY.dayNum()}`) +
       Tile('生成', 'AI') +
       Tile('行数', '12,438') +
       Tile('鮮度', 'Live')

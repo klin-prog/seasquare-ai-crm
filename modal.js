@@ -148,7 +148,7 @@ function openNewTaskModal() {
       <div style="display:flex;flex-direction:column;gap:12px">
         <label class="form-row"><span class="form-lab">タイトル</span><input class="input" placeholder="例: 顧客フォロー" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">関連顧客</span><input class="input" placeholder="顧客を検索 ..." style="flex:1"></label>
-        <label class="form-row"><span class="form-lab">期日</span><input class="input" type="date" value="2026-05-25" style="flex:1"></label>
+        <label class="form-row"><span class="form-lab">期日</span><input class="input" type="date" value="${TODAY.iso(5)}" style="flex:1"></label>
         <label class="form-row"><span class="form-lab">優先度</span><select class="select" style="flex:1"><option>高</option><option selected>中</option><option>低</option></select></label>
         <label class="form-row" style="align-items:flex-start"><span class="form-lab" style="padding-top:8px">メモ</span><textarea class="input" rows="3" style="flex:1;padding:8px 11px;resize:vertical"></textarea></label>
       </div>
@@ -340,7 +340,7 @@ function runAnalyticsQuery() {
         <span style="color:#a594ff">SELECT</span> product_name, <span style="color:#06d4c4">SUM</span>(views) <span style="color:#a594ff">AS</span> total<br>
         <span style="color:#a594ff">FROM</span> access_logs<br>
         <span style="color:#a594ff">WHERE</span> category = 'ソファ'<br>
-        &nbsp;&nbsp;<span style="color:#a594ff">AND</span> date &gt;= '2026-05-14'<br>
+        &nbsp;&nbsp;<span style="color:#a594ff">AND</span> date &gt;= '${TODAY.iso(-6)}'<br>
         <span style="color:#a594ff">GROUP BY</span> product_name<br>
         <span style="color:#a594ff">ORDER BY</span> total <span style="color:#a594ff">DESC</span> <span style="color:#a594ff">LIMIT</span> 3;
       </div>

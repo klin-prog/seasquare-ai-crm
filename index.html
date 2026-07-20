@@ -89,8 +89,8 @@
 
         <div class="page-head">
           <div>
-            <div class="page-title">おはようございます、梶原さん</div>
-            <div class="page-sub">2026/05/20 木曜日 ・ 今日のダッシュボード</div>
+            <div class="page-title" id="dash-greet">おはようございます、梶原さん</div>
+            <div class="page-sub" id="dash-date">今日のダッシュボード</div>
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn" onclick="refreshDashboard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8"></path></svg> 更新</button>
@@ -297,7 +297,7 @@
         <div class="page-head">
           <div>
             <div class="page-title">見込客スコアリング</div>
-            <div class="page-sub">行動イベント × 配点ルールで自動スコアリング ・ 基準日 2026/05/20</div>
+            <div class="page-sub">行動イベント × 配点ルールで自動スコアリング ・ 基準日 <span id="leads-asof"></span></div>
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn" onclick="openScoreConfig()">⚙ 配点設定</button>
@@ -497,7 +497,7 @@
           </div>
           <div style="display:flex;gap:8px">
             <select class="select"><option>全エージェント</option><option>接客AI</option><option>営業AI</option><option>在庫AI</option></select>
-            <input type="date" value="2026-05-20" class="input">
+            <input type="date" id="log-date" class="input">
             <button class="btn" onclick="exportCSV('AI実行ログ')">CSV エクスポート</button>
           </div>
         </div>
@@ -717,7 +717,7 @@
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">梶</div><span style="font-weight:500">梶原</span></div></td>
                   <td class="cell-mute">kajiwara@alion.jp</td>
                   <td><span class="badge b-accent">管理者</span></td>
-                  <td class="cell-mute">5/20 09:30</td>
+                  <td class="cell-mute"><span class="js-rel" data-off="0"></span> 09:30</td>
                   <td><span style="color:var(--success);font-size:12px">すべて</span></td>
                   <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
                   <td><button class="btn ghost sm" onclick="openUserEdit('梶原')">編集</button></td>
@@ -726,7 +726,7 @@
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">山</div><span style="font-weight:500">山田（営業）</span></div></td>
                   <td class="cell-mute">yamada@alion.jp</td>
                   <td><span class="badge b-info">営業</span></td>
-                  <td class="cell-mute">5/20 08:15</td>
+                  <td class="cell-mute"><span class="js-rel" data-off="0"></span> 08:15</td>
                   <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
                   <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
                   <td><button class="btn ghost sm" onclick="openUserEdit('山田（営業）')">編集</button></td>
@@ -735,7 +735,7 @@
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">鈴</div><span style="font-weight:500">鈴木（CS）</span></div></td>
                   <td class="cell-mute">suzuki@alion.jp</td>
                   <td><span class="badge b-warn">CS</span></td>
-                  <td class="cell-mute">5/19 18:42</td>
+                  <td class="cell-mute"><span class="js-rel" data-off="-1"></span> 18:42</td>
                   <td><span style="color:var(--warn);font-size:12px">承認後</span></td>
                   <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
                   <td><button class="btn ghost sm" onclick="openUserEdit('鈴木（CS）')">編集</button></td>
@@ -744,7 +744,7 @@
                   <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">田</div><span style="font-weight:500">田中（開発）</span></div></td>
                   <td class="cell-mute">tanaka@alion.jp</td>
                   <td><span class="badge b-neutral">開発</span></td>
-                  <td class="cell-mute">5/20 02:11</td>
+                  <td class="cell-mute"><span class="js-rel" data-off="0"></span> 02:11</td>
                   <td><span style="color:var(--success);font-size:12px">すべて</span></td>
                   <td><span class="badge b-success"><span class="b-dot"></span>有効</span></td>
                   <td><button class="btn ghost sm" onclick="openUserEdit('田中（開発）')">編集</button></td>
@@ -774,6 +774,7 @@
 <script src="data.js"></script>
 <script src="icons.js"></script>
 <script src="scoring.js"></script>
+<script src="today.js"></script>
 <script src="app.js"></script>
 <script src="interactions.js"></script>
 <script src="modal.js"></script>
