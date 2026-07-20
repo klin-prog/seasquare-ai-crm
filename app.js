@@ -652,6 +652,17 @@ function renderInventory() {
 
 /* ===== Campaigns ===== */
 function renderCampaigns() {
+  const counts = { '配信中': 0, '予約': 0, '下書き': 0 };
+  let rev = 0;
+  DATA.CAMPAIGNS.forEach(c => {
+    if (c.status in counts) counts[c.status]++;
+    const n = parseInt(String(c.rev).replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(n)) rev += n;
+  });
+  $('#camp-stat-live').textContent = counts['配信中'];
+  $('#camp-stat-scheduled').textContent = counts['予約'];
+  $('#camp-stat-draft').textContent = counts['下書き'];
+  $('#camp-stat-rev').textContent = '¥' + (rev / 1e6).toFixed(1) + 'M';
   $('#campaigns-table tbody').innerHTML = DATA.CAMPAIGNS.map(c => `
     <tr class="clickable" onclick="openCampaign('${c.name}')">
       <td style="font-weight:500">${c.name}</td>
