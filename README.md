@@ -12,8 +12,10 @@ Claude Design からの handoff バンドルをもとにした静的プロトタ
 | `index.html` | 画面本体 |
 | `styles.css` | スタイル |
 | `data.js` | ダミーデータ |
-| `app.js` / `details.js` / `interactions.js` / `icons.js` | 画面ロジック・描画 |
+| `scoring.js` | 見込客スコアリングエンジン（配点ルール） |
+| `app.js` / `interactions.js` / `modal.js` / `icons.js` | 画面ロジック・描画 |
+| `chart.min.js` | Chart.js（同梱） |
 
-外部 CDN: Google Fonts, Chart.js。ビルド不要の静的サイトとして配信できます。
+外部 CDN: Google Fonts。ビルド不要の静的サイトとして配信できます。
 
 > 元の handoff 説明は `HANDOFF.md` を参照。

@@ -2,101 +2,6 @@
 const $ = (q, p = document) => p.querySelector(q);
 const $$ = (q, p = document) => Array.from(p.querySelectorAll(q));
 const yen = n => '¥' + n.toLocaleString();
-const yenM = n => { const v = n / 1e6; return '¥' + (Number.isInteger(v) ? v : +v.toFixed(2)) + 'M'; };
-
-/* ===== Clock / greeting (item 4) ===== */
-function clockStr(d) { return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':'); }
-function greeting(d = new Date()) {
-  const h = d.getHours();
-  return h < 5 ? 'こんばんは' : h < 11 ? 'おはようございます' : h < 18 ? 'こんにちは' : 'こんばんは';
-}
-function jpDate(d = new Date()) {
-  const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${w}曜日`;
-}
-
-/* ===== Finance — single source of derived numbers (item 6) =====
-   達成率・着地見込率はすべて actual/target・forecast/target から導出。
-   KPI・月商チャート・レポートが同じ値を参照するので相互に矛盾しない。 */
-function computeFinance() {
-  const f = CONFIG.finance;
-  return { target: f.target, actual: f.actual, forecast: f.forecast, momGrowth: f.momGrowth, pastMonths: f.pastMonths };
-}
-function baseMetrics() {
-  const f = computeFinance();
-  const open = DATA.TASKS.filter(t => t.status === '未対応');
-  const ai = open.filter(t => t.source === 'AI').length;
-  return { actual: f.actual, target: f.target, forecast: f.forecast, momGrowth: f.momGrowth, openTasks: open.length, aiTasks: ai, manualTasks: open.length - ai };
-}
-function metricsView(m) {
-  m = m || METRICS;
-  return { ...m, achievement: m.actual / m.target, projected: m.forecast / m.target };
-}
-let METRICS = baseMetrics();
-window.getMetrics = () => metricsView();
-
-/* ===== Greeting + KPI rendering (items 4, 6) ===== */
-function refreshGreeting() {
-  const g = $('#dash-greeting'); if (g) g.textContent = `${greeting()}、${CONFIG.user.name.split(' ')[0]}さん`;
-  const d = $('#dash-date');     if (d) d.textContent = `${jpDate()} ・ 今日のダッシュボード`;
-}
-const PERIODS = { '今月': [1, '今月', '月末'], '今週': [7 / 30, '今週', '週末'], '今日': [1 / 30, '今日', '本日'] };
-function renderKPIs() {
-  const k = metricsView();
-  const el = $('#kpis'); if (!el) return;
-  const [pf, plabel, elabel] = PERIODS[window.period || '今月'] || PERIODS['今月'];
-  const actual = Math.round(k.actual * pf), target = Math.round(k.target * pf), forecast = Math.round(k.forecast * pf);
-  const pct = (k.achievement * 100).toFixed(1);   // 比率は期間で不変（実績・目標が同率でスケール）
-  el.innerHTML = `
-    <div class="kpi">
-      <div class="kpi-label">${plabel}EC売上</div>
-      <div class="kpi-value">${yen(actual)}</div>
-      <div class="kpi-delta up">${Icon('arrowUp', 12)} 前月比 +${k.momGrowth.toFixed(1)}%</div>
-    </div>
-    <div class="kpi featured">
-      <div class="kpi-label" style="color:rgba(255,255,255,.8)">${plabel}目標 達成率</div>
-      <div class="kpi-value">${pct}%</div>
-      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">${yenM(actual)} / ${yenM(target)}</div>
-      <div class="progress"><div style="width:${pct}%"></div></div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">未対応タスク</div>
-      <div class="kpi-value">${k.openTasks}</div>
-      <div class="kpi-delta mute"><span class="badge b-ai">AI ${k.aiTasks}件</span> 手動 ${k.manualTasks}件</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">AI 予測 ${elabel}着地</div>
-      <div class="kpi-value">${yenM(forecast)}</div>
-      <div class="kpi-delta mute">目標比 ${(k.projected * 100).toFixed(0)}%</div>
-    </div>
-  `;
-}
-function setPeriod(p, btn) {
-  window.period = p;
-  if (btn && btn.parentElement) btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-  renderKPIs();
-}
-
-/* ===== 更新 button — perturb live metrics ±数% (item 5) ===== */
-function perturbMetrics() {
-  // 売上系のみ微変動（タスク数はサイドバー/タブと整合させるため固定・R2）
-  const jit = (v, pct) => Math.round(v * (1 + (Math.random() * 2 - 1) * pct));
-  METRICS.actual = jit(METRICS.actual, 0.03);
-  METRICS.forecast = jit(METRICS.forecast, 0.03);
-  METRICS.momGrowth = +(METRICS.momGrowth + (Math.random() * 2 - 1) * 1.2).toFixed(1);
-}
-function updateRevenueChart() {
-  if (!revChart) return;
-  const k = metricsView(), man = n => Math.round(n / 10000);
-  revChart.data.datasets[0].data[5] = man(k.actual);
-  revChart.data.datasets[1].data[5] = man(k.forecast);
-  revChart.update();
-}
-function pushStreamRow() {
-  streamRows = [{ ...genStreamRow(), time: nowTime(), new: true }, ...streamRows.slice(0, 11)].map((r, i) => ({ ...r, new: i === 0 }));
-  paintStreamRows();
-}
 
 /* ===== Unified mapping ===== */
 function segBadge(s) {
@@ -137,25 +42,9 @@ function priorityChip(p) {
   return `<span class="badge ${m[p]}">${p}</span>`;
 }
 function chBadge(c) {
-  const m = { 'LINE':'b-success','メール':'b-info','SMS':'b-warn','電話':'b-warn','チャット':'b-accent','EC':'b-info','店舗':'b-neutral','広告':'b-warn' };
+  const m = { 'LINE':'b-success','メール':'b-info','電話':'b-warn','チャット':'b-accent','EC':'b-info','店舗':'b-neutral','広告':'b-warn' };
   return `<span class="badge ${m[c]||'b-neutral'}">${c}</span>`;
 }
-function fsegBadge(s) {
-  const m = { '新規':'b-info','高単価検討中':'b-accent','リピート育成中':'b-warn','VIP':'b-accent','離脱リスク':'b-danger','離脱(1年+)':'b-neutral' };
-  return `<span class="badge ${m[s]||'b-neutral'}">${s}</span>`;
-}
-// リードの旧セグメントを家具セグメント語彙に揃える（Y10・用語統一）
-function leadFseg(l) {
-  return ({ 'リピート':'リピート育成中', 'VIP':'VIP', '新規':'新規', '休眠':'離脱リスク' })[l.seg] || l.seg;
-}
-const byScoreDesc = (a, b) => b.score - a.score;
-
-/* ===== 行動スコア (items 7, 8) — score = Σ(action weight) ===== */
-function leadScore(acts) { return Math.min(99, (acts || []).reduce((s, a) => s + ((ACTION_TYPES[a] && ACTION_TYPES[a].w) || 0), 0)); }
-function scoreRows(acts) { return (acts || []).map(a => ({ key: a, ...ACTION_TYPES[a] })).filter(x => x.label).sort((a, b) => b.w - a.w); }
-/* ===== 配信抑制 (item 15) ===== */
-function isSuppressed(c) { return !!(c.dlv && c.dlv.week >= c.dlv.cap); }
-function suppBadge() { return `<span class="badge b-danger" title="配信頻度上限に到達">${Icon('pause', 9)} 送信抑制中</span>`; }
 
 /* ===== Navigation ===== */
 const PAGES = {
@@ -168,8 +57,6 @@ const PAGES = {
   customers:  { label: '顧客一覧', group: '顧客' },
   leads:      { label: '見込客（リード）', group: '顧客' },
   campaigns:  { label: 'キャンペーン', group: '顧客' },
-  workflows:  { label: 'ワークフロー', group: '顧客' },
-  calendar:   { label: '配信カレンダー', group: '顧客' },
   // Products
   orders:     { label: '受注管理', group: '商品' },
   inventory:  { label: '在庫・商品', group: '商品' },
@@ -184,35 +71,6 @@ const PAGES = {
   users:      { label: 'ユーザー', group: '設定' },
 };
 
-// ロール別の表示ページ（null=全て・権限別ビュー）
-const ROLE_PAGES = {
-  '管理者': null,
-  '営業':   ['dashboard','tasks','approvals','deals','customers','leads','campaigns','workflows','calendar','orders','insights','reports','analytics'],
-  'CS':     ['dashboard','tasks','approvals','customers','orders','insights'],
-};
-
-/* ===== i18n（ナビ・タイトル）EN/JP ===== */
-const I18N = {
-  '今日':'Today', '顧客':'Customers', '商品':'Products', 'AI':'AI', '分析':'Analytics', '設定':'Settings',
-  'Dashboard':'Dashboard', '受信箱':'Inbox', 'AI承認待ち':'Approvals', '商談パイプライン':'Deals',
-  '顧客一覧':'Customers', '見込客（リード）':'Leads', 'キャンペーン':'Campaigns', 'ワークフロー':'Workflows',
-  '配信カレンダー':'Calendar', '受注管理':'Orders', '在庫・商品':'Inventory', 'AI 提案':'AI Insights',
-  'AI 実行ログ':'Agent Log', 'レポート':'Reports', 'BigQuery':'BigQuery', '連携・API':'Integrations', 'ユーザー':'Users',
-  'AI 承認待ち':'Approvals', 'BigQuery 分析':'BigQuery', 'ユーザー・権限':'Users & Roles',
-};
-function T(jp) { return window.lang === 'en' ? (I18N[jp] || jp) : jp; }
-function tagTitles() { $$('.page-title').forEach(el => { if (el.id !== 'dash-greeting' && !el.dataset.ja) el.dataset.ja = el.textContent.trim(); }); }
-function applyLangTitles() { $$('.page-title[data-ja]').forEach(el => el.textContent = T(el.dataset.ja)); }
-function setLang(l) {
-  window.lang = l;
-  try { localStorage.setItem('seasquare_lang', l); } catch (e) {}
-  buildSidebar(); applyLangTitles();
-  const active = (document.querySelector('.page.active') || {}).id;
-  nav(active ? active.replace('view-', '') : 'dashboard');
-  toast(l === 'en' ? 'English' : '日本語');
-}
-window.setLang = setLang;
-
 function nav(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
   $('#view-' + name).classList.add('active');
@@ -220,7 +78,7 @@ function nav(name) {
   const btn = $('#nav-' + name);
   if (btn) btn.classList.add('active');
   const p = PAGES[name];
-  $('#crumbs').innerHTML = `${T(p.group)} <span style="opacity:.5;margin:0 6px">/</span> <span class="now">${T(p.label)}</span>`;
+  $('#crumbs').innerHTML = `${p.group} <span style="opacity:.5;margin:0 6px">/</span> <span class="now">${p.label}</span>`;
   window.scrollTo(0, 0);
   $('#content').scrollTo(0, 0);
   if (name === 'dashboard') {
@@ -229,46 +87,32 @@ function nav(name) {
   } else {
     stopAgentSimulation();
   }
-  if (name === 'workflows') setTimeout(renderFunnelChart, 50);
 }
 
 /* ===== Sidebar ===== */
 function buildSidebar() {
-  const openTasks = DATA.TASKS.filter(t => t.status === '未対応').length;
   const groups = {
-    '今日':   [['dashboard','home'],['tasks','inbox', openTasks],['approvals','shield', DATA.APPROVALS.length, 'urgent'],['deals','deal']],
-    '顧客':   [['customers','users'],['leads','flame', DATA.LEADS.length, 'urgent'],['campaigns','mail'],['workflows','zap'],['calendar','calendar']],
+    '今日':   [['dashboard','home'],['tasks','inbox', 12],['approvals','shield', 4, 'urgent'],['deals','deal']],
+    '顧客':   [['customers','users'],['leads','flame', 7, 'urgent'],['campaigns','mail']],
     '商品':   [['orders','box'],['inventory','store']],
-    'AI':     [['insights','sparkles', DATA.INSIGHTS.length, 'ai'],['agent-log','terminal']],
+    'AI':     [['insights','sparkles', 4, 'ai'],['agent-log','terminal']],
     '分析':   [['reports','chart'],['analytics','db']],
     '設定':   [['integrations','plug'],['users','user']],
   };
-  const allowed = ROLE_PAGES[CONFIG.user.role];   // null = 全ページ
   const nav = $('#nav');
-  nav.innerHTML = Object.entries(groups).map(([g, items]) => {
-    const vis = items.filter(([key]) => !allowed || allowed.includes(key));
-    if (!vis.length) return '';
-    return `
+  nav.innerHTML = Object.entries(groups).map(([g, items]) => `
     <div class="nav-group ${g==='AI'?'ai-group':''}">
-      <p class="nav-label">${T(g)}</p>
-      ${vis.map(([key, ic, ct, ctc]) => `
+      <p class="nav-label">${g}</p>
+      ${items.map(([key, ic, ct, ctc]) => `
         <button class="nav-item" id="nav-${key}" onclick="nav('${key}')">
           <span class="ic">${Icon(ic, 16)}</span>
-          <span>${T(PAGES[key].label)}</span>
+          <span>${PAGES[key].label}</span>
           ${ct ? `<span class="ct ${ctc||''}">${ct}</span>` : ''}
         </button>
       `).join('')}
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
-function setRole(r) {
-  CONFIG.user.role = r;
-  try { localStorage.setItem('seasquare_role', r); } catch (e) {}
-  const un = document.querySelector('.user-card .user-name'); if (un) un.textContent = `${CONFIG.user.name}（${r}）`;
-  buildSidebar(); refreshCounts(); nav('dashboard');
-  toast(`ロール: ${r} に切替`);
-}
-window.setRole = setRole;
 
 /* ===== Dashboard ===== */
 function renderDashboard() {
@@ -293,10 +137,30 @@ function renderDashboard() {
       </div>
     `).join('');
   }
-  // Greeting + date (item 4 — current time / weekday)
-  refreshGreeting();
-  // KPIs — all values derived from one metrics object (item 6)
-  renderKPIs();
+  // KPIs
+  $('#kpis').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-label">今月EC売上</div>
+      <div class="kpi-value">¥6,840,000</div>
+      <div class="kpi-delta up">${Icon('arrowUp',12)} 前月比 +14.2%</div>
+    </div>
+    <div class="kpi featured">
+      <div class="kpi-label" style="color:rgba(255,255,255,.8)">月商目標 達成率</div>
+      <div class="kpi-value">68.4%</div>
+      <div class="kpi-delta mute" style="color:rgba(255,255,255,.75)">¥6.84M / ¥10M</div>
+      <div class="progress"><div style="width:68.4%"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">未対応タスク</div>
+      <div class="kpi-value">12</div>
+      <div class="kpi-delta mute"><span class="badge b-ai">AI 9件</span> 手動 3件</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">AI 予測 月末着地</div>
+      <div class="kpi-value">¥9.2M</div>
+      <div class="kpi-delta mute">信頼区間 ±5%</div>
+    </div>
+  `;
 
   // AI Agent live activity (the hero)
   $('#agent-stream').innerHTML = `
@@ -329,7 +193,7 @@ function renderDashboard() {
 
   // Tasks
   $('#dash-tasks').innerHTML = DATA.TASKS.slice(0, 5).map(t => `
-    <div onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
       <input type="checkbox" class="checkbox" onclick="event.stopPropagation()">
       <div style="flex:1">
         <div style="font-weight:500">${t.title}</div>
@@ -342,14 +206,18 @@ function renderDashboard() {
     </div>
   `).join('');
 
-  // Hot leads
-  $('#dash-leads').innerHTML = [...DATA.LEADS].sort(byScoreDesc).slice(0, 5).map(l => `
-    <div onclick="openLead(${l.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
-      <div style="flex:1">
-        <div style="font-weight:500">${l.name} <span style="color:var(--text-mute);font-size:11px;margin-left:4px">${fsegBadge(leadFseg(l))}</span></div>
-        <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${l.last}</div>
+  // Hot leads (スコア上位5件)
+  const hotLeads = computeLeadRows({ windowMonths: 2 }).slice(0, 5);
+  $('#dash-leads').innerHTML = hotLeads.map(l => `
+    <div onclick="openLead('${l.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-soft);font-size:12.5px;cursor:pointer" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;display:flex;align-items:center;gap:6px">
+          ${l.name || '<span style="color:var(--text-mute)">匿名（未登録）</span>'}
+          <span class="badge ${l.group==='A'?'b-accent':'b-neutral'}" style="font-size:9.5px">${l.group}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-mute);margin-top:2px">${l.topProduct || '—'} ・ <span class="badge ${l.band.cls}" style="font-size:9.5px">${l.band.label}</span></div>
       </div>
-      ${scoreChip(l.score)}
+      <span style="font-size:15px;font-weight:700;color:${l.band.color}">${l.total}</span>
     </div>
   `).join('');
 }
@@ -360,8 +228,7 @@ let streamTimer = null;
 
 function paintStreamRows() {
   if (!streamRows.length) {
-    const t0 = Date.now();
-    streamRows = Array.from({ length: 8 }, (_, i) => ({ ...genStreamRow(), time: clockStr(new Date(t0 - i * 78000)), new: false }));
+    streamRows = DATA.AGENT_LOG.slice(0, 8).map((r,i) => ({...r, new: false, _idx: i}));
   }
   const sl = $('#stream-list');
   if (!sl) return;
@@ -370,11 +237,9 @@ function paintStreamRows() {
     const statusIc = r.status === 'success' ? `<span class="badge b-success">${Icon('check',10)}</span>` :
                      r.status === 'pending' ? `<span class="badge b-warn">承認待</span>` :
                      `<span class="badge b-danger">エラー</span>`;
-    const click = r.ref
-      ? (r.ref.t === 'customer' ? `openCustomer('${r.ref.id}')` : r.ref.t === 'product' ? `openProduct('${r.ref.id}')` : `openLead(${r.ref.id})`)
-      : `openAgentLog(0)`;
+    const idx = r._idx !== undefined ? r._idx : 0;
     return `
-      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="${click}" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+      <div class="stream-row ${r.new?'new':''}" style="cursor:pointer" onclick="openAgentLog(${idx})" onmouseover="this.style.background='#fafbfd'" onmouseout="this.style.background=''">
         <div class="t">${r.time}</div>
         <div><span class="badge ${agentColor}">${r.agent}</span></div>
         <div class="msg">
@@ -389,28 +254,26 @@ function paintStreamRows() {
   }).join('');
 }
 
-// 実データ(実顧客/商品/リード)を参照するログ行を生成（クリックで該当レコードへ）
-function genStreamRow() {
-  const cust = DATA.CUSTOMERS[Math.floor(Math.random() * DATA.CUSTOMERS.length)];
-  const prod = DATA.INVENTORY[Math.floor(Math.random() * DATA.INVENTORY.length)];
-  const lead = DATA.LEADS[Math.floor(Math.random() * DATA.LEADS.length)];
-  const tpl = [
-    () => ({ agent:'接客AI', tool:'get_customer',    input:`id=${cust.id}`,                 result:cust.name,             ms:118, tok:312, status:'success', ref:{ t:'customer', id:cust.id } }),
-    () => ({ agent:'接客AI', tool:'search_products', input:`category=${prod.cat}`,           result:prod.name,             ms:295, tok:402, status:'success', ref:{ t:'product', id:prod.sku } }),
-    () => ({ agent:'接客AI', tool:'ar_view',         input:`sku=${prod.sku}`,                result:'AR起動',              ms:210, tok:180, status:'success', ref:{ t:'product', id:prod.sku } }),
-    () => ({ agent:'営業AI', tool:'send_line',       input:cust.name,                        result:'承認待ち',            ms:88,  tok:240, status:'pending', ref:{ t:'customer', id:cust.id } }),
-    () => ({ agent:'営業AI', tool:'create_task',     input:`${lead.name}へ${lead.action}`,   result:'TASK 作成',           ms:142, tok:380, status:'success', ref:{ t:'lead', id:lead.id } }),
-    () => ({ agent:'分析AI', tool:'score_update',    input:`lead=${lead.name}`,              result:`score=${lead.score}`, ms:240, tok:300, status:'success', ref:{ t:'lead', id:lead.id } }),
-    () => ({ agent:'在庫AI', tool:'bigquery_sql',    input:`velocity sku=${prod.sku}`,       result:`${2 + Math.floor(Math.random() * 8)} rows`, ms:1820, tok:520, status:'success' }),
-  ];
-  return tpl[Math.floor(Math.random() * tpl.length)]();
-}
 function startAgentSimulation() {
   stopAgentSimulation();
-  streamTimer = setInterval(pushStreamRow, 3200);
+  streamTimer = setInterval(() => {
+    const samples = [
+      {agent:'接客AI', tool:'search_products', input:'category=ラグ', result:'5件', ms:295, tok:402, status:'success'},
+      {agent:'営業AI', tool:'send_line',       input:'佐藤 美咲', result:'承認待ち', ms:88, tok:240, status:'pending'},
+      {agent:'接客AI', tool:'get_customer',    input:'cid=4', result:'山本 葵', ms:118, tok:312, status:'success'},
+      {agent:'在庫AI', tool:'bigquery_sql',    input:'velocity 7d', result:'6 rows', ms:1820, tok:520, status:'success'},
+      {agent:'営業AI', tool:'create_task',     input:'AR体験リンク送付', result:'TASK-2345 作成', ms:142, tok:380, status:'success'},
+    ];
+    const next = {...samples[Math.floor(Math.random()*samples.length)], time: nowTime(), new: true};
+    streamRows = [next, ...streamRows.slice(0, 11)].map((r,i) => ({...r, new: i===0}));
+    paintStreamRows();
+  }, 3200);
 }
 function stopAgentSimulation() { if (streamTimer) { clearInterval(streamTimer); streamTimer = null; } }
-function nowTime() { return clockStr(new Date()); }
+function nowTime() {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+}
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
 /* ===== Insight card ===== */
@@ -434,108 +297,205 @@ function renderInsightCard(i, idx, featured) {
 
 /* ===== Customers ===== */
 function renderCustomers() {
-  const f = window.custFilters || {};
-  const seg = f.seg || '全セグメント';
-  const rows = DATA.CUSTOMERS.filter(c => {
-    if (seg !== '全セグメント' && c.fseg !== seg) return false;
-    if (f.score === '高 (80+)'   && !(c.score >= 80)) return false;
-    if (f.score === '中 (50-79)' && !(c.score >= 50 && c.score < 80)) return false;
-    if (f.score === '低'         && !(c.score < 50)) return false;
-    if (f.ch && f.ch !== '登録チャネル' && c.ch !== f.ch) return false;
-    if (f.q && !(c.name.includes(f.q) || c.id.toLowerCase().includes(f.q.toLowerCase()))) return false;
-    return true;
-  });
-  $('#customers-table tbody').innerHTML = rows.map(c => `
+  $('#customers-table tbody').innerHTML = DATA.CUSTOMERS.map(c => `
     <tr class="clickable" onclick="openCustomer('${c.id}')">
       <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
       <td class="cell-mono">${c.id}</td>
       <td><div style="display:flex;align-items:center;gap:10px">
         <div class="avatar" style="width:26px;height:26px;font-size:10.5px">${c.name[0]}</div>
         <span style="font-weight:500">${c.name}</span>
-        ${isSuppressed(c) ? suppBadge() : ''}
       </div></td>
-      <td>${fsegBadge(c.fseg)}</td>
+      <td>${segBadge(c.seg)}</td>
       <td style="font-weight:500">${yen(c.ltv)}</td>
       <td class="cell-mute">${c.last}</td>
       <td>${c.count}回</td>
       <td>${chBadge(c.ch)}</td>
       <td>${scoreChip(c.score)}</td>
     </tr>
-  `).join('') || `<tr><td colspan="9" style="padding:28px;text-align:center;color:var(--text-mute)">条件に一致する顧客がいません</td></tr>`;
-  const active = (seg !== '全セグメント') || (f.score && f.score !== 'LTV スコア') || (f.ch && f.ch !== '登録チャネル') || !!f.q;
-  const pg = document.querySelector('#view-customers .pager span');
-  if (pg) pg.textContent = active ? `${rows.length} 件（絞り込み中 / 全 5,432 件）` : '1 — 12 / 5,432 件';
-}
-function applyCustomerFilter() {
-  const sels = document.querySelectorAll('#view-customers .filterbar select');
-  const inp = document.querySelector('#view-customers .filterbar input');
-  window.custFilters = {
-    seg:   sels[0] ? sels[0].value : '全セグメント',
-    score: sels[1] ? sels[1].value : 'LTV スコア',
-    ch:    sels[2] ? sels[2].value : '登録チャネル',
-    q:     inp ? inp.value.trim() : '',
-  };
-  renderCustomers();
-  toast(`絞り込み: ${document.querySelectorAll('#customers-table tbody tr').length} 件`);
-}
-window.applyCustomerFilter = applyCustomerFilter;
-
-/* ===== Leads ===== */
-function renderLeadTiles() {
-  const ls = DATA.LEADS;
-  const n = (lo, hi) => ls.filter(l => l.score >= lo && l.score < hi).length;
-  const el = $('#lead-tiles'); if (!el) return;
-  el.innerHTML = `
-    <div class="tile"><div class="lab">スコア 90+</div><div class="val" style="color:var(--danger)">${ls.filter(l => l.score >= 90).length} 名</div></div>
-    <div class="tile"><div class="lab">スコア 80-89</div><div class="val" style="color:var(--warn)">${n(80, 90)} 名</div></div>
-    <div class="tile"><div class="lab">スコア 70-79</div><div class="val" style="color:var(--success)">${n(70, 80)} 名</div></div>
-    <div class="tile"><div class="lab">スコア 70未満</div><div class="val">${ls.filter(l => l.score < 70).length} 名</div></div>`;
-}
-function renderLeads() {
-  renderLeadTiles();
-  $('#leads-table tbody').innerHTML = [...DATA.LEADS].sort(byScoreDesc).map(l => `
-    <tr class="clickable" onclick="openLead(${l.id})">
-      <td><input type="checkbox" class="checkbox" onclick="event.stopPropagation()"></td>
-      <td><div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar" style="width:26px;height:26px;font-size:10.5px">${l.name[0]}</div>
-        <span style="font-weight:500">${l.name}</span>
-      </div></td>
-      <td>${scoreChip(l.score)}</td>
-      <td>${fsegBadge(leadFseg(l))}</td>
-      <td class="cell-mute" style="max-width:220px">${l.last}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="badge b-ai">${Icon('sparkles',10)} AI</span>
-          <span style="color:var(--accent-hi);font-size:12px">${l.action}</span>
-        </div>
-      </td>
-      <td style="font-weight:600">${yen(l.revenue)}</td>
-      <td>${chBadge(l.ch)}</td>
-      <td>
-        <button class="btn ai sm" onclick="event.stopPropagation();confirmDialog({title:'AI アクションを実行',body:'${l.name}さまへ ${l.action} を実行します。',confirmText:'承認・実行',onConfirm:()=>toast('${l.name}さまへアプローチを実行')})">実行</button>
-      </td>
-    </tr>
   `).join('');
 }
 
+/* ===== Leads (scoring) ===== */
+let LEAD_WINDOW = 2;
+
+function scoreBar(row) {
+  const segs = row.breakdown.map(b =>
+    `<span title="${b.label}: ${b.points}点${b.perTime?` (${b.count}回×${b.unit})`:''}" style="width:${b.points}%;background:${b.color}"></span>`
+  ).join('');
+  return `
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;width:28px;color:${row.band.color}">${row.total}</span>
+      <span style="flex:1;display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--surface-2);min-width:110px">${segs}</span>
+    </div>`;
+}
+
+function leadFilters() {
+  return {
+    group: ($('#f-group')||{}).value || '',
+    band:  ($('#f-band')||{}).value || '',
+    product: ($('#f-product')||{}).value || '',
+  };
+}
+
+function currentLeadRows() {
+  const f = leadFilters();
+  return computeLeadRows({ windowMonths: LEAD_WINDOW }).filter(r =>
+    (!f.group   || r.group === f.group) &&
+    (!f.band    || r.band.key === f.band) &&
+    (!f.product || r.topSku === f.product)
+  );
+}
+
+function renderLeadMatrix() {
+  const rows = computeLeadRows({ windowMonths: LEAD_WINDOW });
+  const groups = [['A','A：会員'], ['B','B：メール非会員']];
+  const bands = [['hot','ホット','var(--danger)'], ['warm','ウォーム','var(--warn)'], ['cold','コールド','var(--info)'], ['excluded','対象外','var(--text-mute)']];
+  const cell = (g, b) => rows.filter(r => (!g || r.group===g) && (!b || r.band.key===b)).length;
+
+  const head = `<tr>
+    <th style="text-align:left">グループ</th>
+    ${bands.map(b=>`<th style="text-align:center;color:${b[2]}">${b[1]}</th>`).join('')}
+    <th style="text-align:center">合計</th>
+  </tr>`;
+  const body = groups.map(g => `
+    <tr>
+      <td style="font-weight:600">${g[1]}</td>
+      ${bands.map(b => {
+        const n = cell(g[0], b[0]);
+        return `<td style="text-align:center"><button class="matrix-cell" onclick="jumpLead('${g[0]}','${b[0]}')" ${n?'':'disabled'}>${n}</button></td>`;
+      }).join('')}
+      <td style="text-align:center;font-weight:700">${cell(g[0],'')}</td>
+    </tr>`).join('');
+  const foot = `
+    <tr style="border-top:2px solid var(--border)">
+      <td style="font-weight:700">合計</td>
+      ${bands.map(b => `<td style="text-align:center;font-weight:700">${cell('',b[0])}</td>`).join('')}
+      <td style="text-align:center;font-weight:700">${rows.length}</td>
+    </tr>`;
+  $('#lead-matrix').innerHTML = `<table class="matrix-tbl">${head}${body}${foot}</table>`;
+}
+
+function renderLeads() {
+  const rows = currentLeadRows();
+  const fmtDate = d => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}` : '<span class="cell-mute">—</span>';
+
+  $('#leads-table tbody').innerHTML = rows.map(r => `
+    <tr class="clickable" onclick="openLead('${r.id}')">
+      <td><span class="badge ${r.group==='A'?'b-accent':'b-neutral'}">${r.group==='A'?'A 会員':'B 非会員'}</span></td>
+      <td class="cell-mono">${r.id}</td>
+      <td>
+        ${r.name
+          ? `<div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10.5px">${r.name[0]}</div><div><div style="font-weight:500">${r.name}</div><div style="font-size:10.5px;color:var(--text-mute)">${r.seg||''}</div></div></div>`
+          : `<div style="display:flex;align-items:center;gap:10px"><div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--text-mute)">${Icon('user',13)}</div><div><div style="color:var(--text-mute)">匿名（未登録）</div><div style="font-size:10.5px;color:var(--text-dim)">${r.email}</div></div></div>`}
+      </td>
+      <td>${r.eligible
+        ? scoreBar(r)
+        : `<span style="font-size:12px;color:var(--text-mute)">— <span class="badge b-neutral" style="margin-left:4px">対象外</span></span>`}</td>
+      <td><span class="badge ${r.band.cls}">${r.band.label}</span></td>
+      <td>${r.topProduct ? `<span style="font-size:12px">${r.topProduct}</span><div style="font-size:10px;color:var(--text-dim);font-family:monospace">${r.topSku}</div>` : '<span class="cell-mute">—</span>'}</td>
+      <td class="cell-mute">${fmtDate(r.eligible ? r.lastInWin : r.lastAny)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-mute)">該当なし</td></tr>`;
+
+  const excluded = computeLeadRows({ windowMonths: LEAD_WINDOW }).filter(r => !r.eligible).length;
+  $('#lead-count').textContent = `${rows.length} 件表示 ・ 対象外 ${excluded} 件`;
+}
+
+/* 効果測定：スコア帯 × 実購買 */
+function renderReconcile() {
+  const data = reconcileScoreToPurchase({ windowMonths: LEAD_WINDOW });
+  const pct = v => (v * 100).toFixed(0) + '%';
+  const maxCvr = Math.max(...data.map(d => d.cvr), 0.0001);
+  $('#lead-reconcile').innerHTML = `
+    <table class="matrix-tbl">
+      <tr>
+        <th style="text-align:left">スコア帯</th>
+        <th style="text-align:center">リード数</th>
+        <th style="text-align:center">購入者数</th>
+        <th style="text-align:left;width:180px">購入率（CVR）</th>
+        <th style="text-align:right">実売上</th>
+      </tr>
+      ${data.map(d => `
+        <tr>
+          <td><span class="badge ${d.key==='hot'?'b-danger':d.key==='warm'?'b-warn':'b-info'}">${d.label}</span></td>
+          <td style="text-align:center">${d.leads}</td>
+          <td style="text-align:center;font-weight:600">${d.buyers}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="flex:1;height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;display:block"><span style="display:block;height:100%;width:${(d.cvr/maxCvr*100)}%;background:${d.color}"></span></span>
+              <span style="width:38px;text-align:right;font-weight:600;font-size:12px;color:${d.color}">${pct(d.cvr)}</span>
+            </div>
+          </td>
+          <td style="text-align:right;font-weight:600">${yen(d.rev)}</td>
+        </tr>
+      `).join('')}
+    </table>
+    <div style="font-size:11px;color:var(--text-mute);margin-top:10px;line-height:1.5">
+      ※ スコア付与後の実購買を <b>user識別子</b>（会員ID / ブラウザID）で突合。ホット帯ほど CVR・実売上が高いことを確認できます（スコアの妥当性検証）。
+    </div>`;
+}
+
+function setLeadWindow(v) {
+  LEAD_WINDOW = Number(v);
+  const label = { 1:'直近1ヶ月', 2:'直近2ヶ月', 3:'直近3ヶ月', 6:'直近6ヶ月' }[LEAD_WINDOW];
+  buildLeadProductFilter();
+  renderLeadMatrix();
+  renderLeads();
+  renderReconcile();
+  toast(`時間窓を${label}に変更 → 再計算しました`);
+}
+
+function jumpLead(group, band) {
+  const g = $('#f-group'), b = $('#f-band'), p = $('#f-product');
+  if (g) g.value = group;
+  if (b) b.value = band;
+  if (p) p.value = '';
+  renderLeads();
+  $('#content').scrollTo({ top: 360, behavior: 'smooth' });
+}
+
+function buildLeadProductFilter() {
+  const sel = $('#f-product');
+  if (!sel) return;
+  const prev = sel.value;
+  const skus = [...new Set(computeLeadRows({ windowMonths: LEAD_WINDOW }).map(r => r.topSku).filter(Boolean))];
+  sel.innerHTML = `<option value="">全 関心商品</option>` +
+    skus.map(s => `<option value="${s}">${PRODUCTS[s]}</option>`).join('');
+  if (skus.includes(prev)) sel.value = prev;
+}
+
+function exportLeadsCSV() {
+  const rows = currentLeadRows();
+  const header = ['識別子','グループ','氏名','メール','配信可','スコア','スコア帯','行動内訳','関心商品ID','関心商品名','最終行動日','集計対象窓'];
+  const fmtDate = d => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}` : '';
+  const lines = rows.map(r => [
+    r.id, r.group==='A'?'A:会員':'B:メール非会員', r.name||'(匿名)', r.email, r.optIn?'可':'不可',
+    r.eligible ? r.total : '対象外', r.band.label,
+    r.breakdown.map(b=>`${b.label}:${b.points}(${b.sku})`).join(' / '),
+    r.topSku||'', r.topProduct||'', fmtDate(r.eligible ? r.lastInWin : r.lastAny),
+    `直近${LEAD_WINDOW}ヶ月`
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + [header.join(','), ...lines].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `leads_scoring_${LEAD_WINDOW}m.csv`;
+  a.click();
+  toast(`${rows.length} 件を CSV 出力しました`);
+}
+
+Object.assign(window, { renderLeads, renderLeadMatrix, renderReconcile, setLeadWindow, jumpLead, exportLeadsCSV, buildLeadProductFilter, currentLeadRows });
+
 /* ===== Deals ===== */
 function renderDeals() {
-  // ヘッダーの数値をボードから算出（R3・看板と一致させる）
-  const cols = DATA.DEALS_BOARD, allItems = cols.flatMap(c => c.items);
-  const openSum = cols.filter(c => c.key !== 'won').flatMap(c => c.items).reduce((s, d) => s + d.a, 0);
-  const aiN = allItems.filter(d => d.src === 'AI').length, manN = allItems.length - aiN;
-  const sub = document.querySelector('#view-deals .page-sub');
-  if (sub) sub.textContent = `月内見込 ${yen(openSum)} ・ AI 自動生成 ${aiN} 件 / 手動 ${manN} 件`;
-  $('#deals-board').innerHTML = DATA.DEALS_BOARD.map(c => {
-    const colSum = '¥' + Math.round(c.items.reduce((s, d) => s + d.a, 0) / 1000) + 'K';
-    return `
-    <div class="kanban-col col-${c.color}" ondragover="event.preventDefault()" ondrop="dealDrop(event,'${c.key}')">
+  $('#deals-board').innerHTML = DATA.DEALS_BOARD.map(c => `
+    <div class="kanban-col col-${c.color}">
       <h4>
-        <span>${c.title} <span style="color:var(--text-dim);margin-left:4px">${c.items.length}</span></span>
-        <span style="color:var(--text-soft);text-transform:none;font-size:11px">${colSum}</span>
+        <span>${c.title} <span style="color:var(--text-dim);margin-left:4px">${c.count}</span></span>
+        <span style="color:var(--text-soft);text-transform:none;font-size:11px">${c.sum}</span>
       </h4>
       ${c.items.map((d,i) => `
-        <div class="kanban-card" draggable="true" ondragstart="dealDragStart(event,'${c.key}',${i})" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}','${c.key}')">
+        <div class="kanban-card" onclick="openDeal('${d.c}','${d.t}',${d.a},'${d.src}')">
           <div class="who">${d.c}</div>
           <div class="topic">${d.t}</div>
           <div class="row">
@@ -545,60 +505,20 @@ function renderDeals() {
         </div>
       `).join('')}
       <button class="btn ghost sm" onclick="toast('商談を追加')" style="width:100%;justify-content:center;margin-top:4px;color:var(--text-mute)">${Icon('plus',12)} 追加</button>
-    </div>`;
-  }).join('');
-}
-/* 商談カードのドラッグ&ドロップ移動 (D21) */
-function dealDragStart(e, key, idx) { e.dataTransfer.setData('text/plain', key + ':' + idx); e.dataTransfer.effectAllowed = 'move'; }
-function dealDrop(e, toKey) {
-  e.preventDefault();
-  const [fromKey, idxS] = (e.dataTransfer.getData('text/plain') || '').split(':');
-  if (fromKey === toKey) return;
-  const from = DATA.DEALS_BOARD.find(c => c.key === fromKey), to = DATA.DEALS_BOARD.find(c => c.key === toKey);
-  if (!from || !to) return;
-  const item = from.items.splice(+idxS, 1)[0];
-  if (!item) return;
-  to.items.push(item);
-  renderDeals(); saveState();
-  toast(`${item.c}「${item.t}」を「${to.title}」へ移動`);
-}
-/* 商談を次ステージへ進める（詳細フロー・状態保存） */
-function advanceDeal(c, t, fromKey) {
-  const order = ['new', 'qualified', 'proposal', 'won'];
-  const fi = order.indexOf(fromKey);
-  if (fi < 0 || fi >= order.length - 1) return;
-  const from = DATA.DEALS_BOARD.find(col => col.key === fromKey);
-  const to = DATA.DEALS_BOARD.find(col => col.key === order[fi + 1]);
-  if (!from || !to) return;
-  const idx = from.items.findIndex(d => d.c === c && d.t === t);
-  if (idx < 0) return;
-  const item = from.items.splice(idx, 1)[0];
-  to.items.push(item);
-  saveState(); renderDeals();
-  toast(`${c}「${t}」を「${to.title}」へ進めました`);
-  if (window.openDeal) openDeal(item.c, item.t, item.a, item.src, to.key);
+    </div>
+  `).join('');
 }
 
 /* ===== Tasks ===== */
 function renderTasks() {
   const priBar = { '高':'var(--danger)','中':'var(--warn)','低':'var(--text-dim)' };
-  const statusCls = { '未対応':'b-warn','対応中':'b-info','完了':'b-success' };
-  // tab counts are derived from data (Y17)
-  const counts = {}; DATA.TASKS.forEach(t => counts[t.status] = (counts[t.status] || 0) + 1);
-  const order = ['未対応', '対応中', '完了'];
-  document.querySelectorAll('#view-tasks .tabs .tab').forEach((tab, i) => {
-    const ct = tab.querySelector('.ct'); if (ct && order[i]) ct.textContent = counts[order[i]] || 0;
-  });
-  const f = window.taskFilter || '未対応';
-  const rows = DATA.TASKS.filter(t => f === 'すべて' || t.status === f);
-  $('#tasks-list').innerHTML = rows.length ? rows.map(t => `
+  $('#tasks-list').innerHTML = DATA.TASKS.map(t => `
     <div class="clickable" onclick="openTask(${t.id})" style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border-soft);cursor:pointer">
       <input type="checkbox" class="checkbox" onclick="event.stopPropagation()">
       <div style="width:3px;height:32px;border-radius:2px;background:${priBar[t.priority]}"></div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:500">${t.title}</div>
         <div style="font-size:11.5px;color:var(--text-mute);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="badge ${statusCls[t.status] || 'b-neutral'}">${t.status}</span>
           ${t.customer !== '-' ? `<span>${Icon('user',11)} ${t.customer}</span>` : ''}
           <span>${Icon('clock',11)} ${t.due}</span>
           ${t.source==='AI'
@@ -609,13 +529,11 @@ function renderTasks() {
       ${priorityChip(t.priority)}
       <button class="btn sm" onclick="event.stopPropagation();openTask(${t.id})">対応する</button>
     </div>
-  `).join('') : `<div style="padding:28px;text-align:center;color:var(--text-mute);font-size:12.5px">「${f}」のタスクはありません</div>`;
+  `).join('');
 }
 
 /* ===== Orders ===== */
 function renderOrders() {
-  const osub = document.querySelector('#view-orders .page-sub');
-  if (osub) osub.textContent = `今月 168 件 / ${yen(metricsView().actual)}`;
   $('#orders-table tbody').innerHTML = DATA.ORDERS.map(o => `
     <tr class="clickable" onclick="openOrder('${o.no}')">
       <td class="cell-mono">${o.no}</td>
@@ -678,121 +596,6 @@ function renderCampaigns() {
   `).join('');
 }
 
-/* ===== Workflows (items 12, 14) ===== */
-let selectedWf = null;
-function renderWorkflows() {
-  const list = $('#wf-list'); if (!list) return;
-  if (!selectedWf) selectedWf = DATA.WORKFLOWS[0].id;
-  list.innerHTML = DATA.WORKFLOWS.map(w => `
-    <div class="wf-item ${w.id === selectedWf ? 'active' : ''}" onclick="selectWorkflow('${w.id}')">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <span style="font-weight:600;font-size:12.5px">${w.name}</span>
-        ${statusBadge(w.status)}
-      </div>
-      <div style="font-size:11px;color:var(--text-mute);margin-top:5px;display:flex;align-items:center;gap:5px">${Icon('zap', 10)} ${w.trigger}</div>
-      <div style="font-size:11px;color:var(--text-mute);margin-top:6px;display:flex;gap:12px"><span>登録 ${w.enrolled}名</span><span>CV率 <b style="color:var(--success)">${w.cvr}</b></span></div>
-    </div>`).join('');
-  renderWfCanvas();
-}
-function selectWorkflow(id) { selectedWf = id; renderWorkflows(); }
-function renderWfCanvas() {
-  const c = $('#wf-canvas'); if (!c) return;
-  const w = DATA.WORKFLOWS.find(x => x.id === selectedWf) || DATA.WORKFLOWS[0];
-  const meta = { trigger:{ic:'zap',t:'トリガー'}, send:{ic:'mail',t:'送信'}, wait:{ic:'clock',t:'待機'}, branch:{ic:'filter',t:'分岐'}, goal:{ic:'check',t:'ゴール'} };
-  const leadOpts = DATA.LEADS.map(l => `<option value="${l.id}">${l.name}（AR体験${(l.acts || []).includes('ar_view') ? '有' : '無'}）</option>`).join('');
-  c.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div><div class="card-title">${w.name}</div><div class="card-sub" style="display:flex;align-items:center;gap:5px;margin-top:2px">${Icon('zap',11)} トリガー: ${w.trigger}</div></div>
-      ${statusBadge(w.status)}
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-      <span style="font-size:11.5px;color:var(--text-mute)">サンプル顧客で分岐をシミュレート:</span>
-      <select class="select" id="wf-sim-lead" style="height:30px">${leadOpts}</select>
-      <button class="btn ai sm" onclick="simulateWorkflow()">${Icon('play',11)} 実行</button>
-    </div>
-    <div style="display:flex;flex-direction:column">
-      ${w.nodes.map((n, i) => {
-        const m = meta[n.type] || { ic:'cpu', t:n.type };
-        return `<div class="wf-node wf-${n.type}" data-node="${i}"><span class="wf-ic">${Icon(m.ic, 14)}</span><div style="min-width:0"><div class="wf-type">${m.t}</div><div class="wf-label">${n.label}</div></div></div>${i < w.nodes.length - 1 ? '<div class="wf-conn"></div>' : ''}`;
-      }).join('')}
-    </div>
-    <div id="wf-sim-result"></div>`;
-}
-function simulateWorkflow() {
-  const w = DATA.WORKFLOWS.find(x => x.id === selectedWf) || DATA.WORKFLOWS[0];
-  const sel = document.querySelector('#wf-sim-lead');
-  const lead = DATA.LEADS.find(l => l.id === +(sel && sel.value)) || DATA.LEADS[0];
-  const hasAR = (lead.acts || []).includes('ar_view');
-  const nodes = [...document.querySelectorAll('#wf-canvas .wf-node')];
-  nodes.forEach(n => n.classList.remove('sim-on'));
-  const res = $('#wf-sim-result'); if (res) res.innerHTML = '';
-  const branch = w.nodes.find(n => n.type === 'branch');
-  nodes.forEach((node, k) => setTimeout(() => {
-    node.classList.add('sim-on');
-    if (k === nodes.length - 1 && res) {
-      res.innerHTML = `
-        <div style="margin-top:16px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:10px;padding:12px 14px;font-size:12.5px">
-          <div style="font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${Icon('zap',12)} シミュレーション結果 — ${lead.name}（AR体験: ${hasAR ? 'あり' : 'なし'}）</div>
-          <div style="color:var(--text-soft);line-height:1.7">分岐「${branch ? branch.label : '-'}」は <b style="color:var(--accent-hi)">${hasAR ? 'Yes' : 'No'}</b> 経路。${hasAR ? 'AR閲覧済みのため 3Dコーデ提案へ進みます。' : 'AR未閲覧のため 実例カタログ送付へ進みます。'}</div>
-        </div>`;
-    }
-  }, k * 300));
-  toast(`${lead.name} でワークフローを実行`);
-}
-let funnelChart = null;
-function renderFunnelChart() {
-  const cv = $('#funnelChart'); if (!cv) return;
-  if (funnelChart) { funnelChart.resize(); return; }
-  const f = DATA.FUNNEL, txt = '#767c95', grid = 'rgba(20,21,42,.06)';
-  const primary = CONFIG.brand.primary, secondary = CONFIG.brand.secondary;
-  funnelChart = new Chart(cv, {
-    type: 'line',
-    data: { labels: f.weeks, datasets: [
-      { label:'CV率 (%)', data:f.cvr, borderColor:primary, backgroundColor:_hexToRgba(primary, .10), fill:true, tension:.35, borderWidth:2, pointRadius:2, yAxisID:'y' },
-      { label:'開封率 (%)', data:f.open, borderColor:secondary, fill:false, tension:.35, borderWidth:2, pointRadius:2, yAxisID:'y1' },
-      { label:'配信解除率 (%)', data:f.unsub, borderColor:'#e11d48', borderDash:[4,3], fill:false, tension:.35, borderWidth:1.5, pointRadius:2, yAxisID:'y' },
-    ] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position:'bottom', labels:{ color:txt, font:{size:11}, boxWidth:12 } } },
-      scales: {
-        x:  { ticks:{ color:txt, font:{size:10.5} }, grid:{ color:grid } },
-        y:  { position:'left',  ticks:{ color:txt, font:{size:10}, callback:v=>v+'%' }, grid:{ color:grid }, title:{ display:true, text:'CV率 / 解除率', color:txt, font:{size:10} } },
-        y1: { position:'right', ticks:{ color:txt, font:{size:10}, callback:v=>v+'%' }, grid:{ display:false }, title:{ display:true, text:'開封率', color:txt, font:{size:10} } },
-      }
-    }
-  });
-}
-
-/* ===== 配信カレンダー（深掘り） ===== */
-function renderCalendar() {
-  const grid = $('#cal-grid'); if (!grid) return;
-  const base = new Date();
-  const y = base.getFullYear(), m = base.getMonth(), todayD = base.getDate();
-  const startDow = new Date(y, m, 1).getDay();
-  const days = new Date(y, m + 1, 0).getDate();
-  const byDay = {};
-  DATA.SCHEDULE.forEach(s => { (byDay[s.day] = byDay[s.day] || []).push(s); });
-  const dows = ['日', '月', '火', '水', '木', '金', '土'];
-  const cells = [];
-  for (let i = 0; i < startDow; i++) cells.push('<div class="cal-cell empty"></div>');
-  for (let d = 1; d <= days; d++) {
-    const chips = (byDay[d] || []).map(s => {
-      const onclick = s.type === 'campaign' ? `openCampaign('${s.name}')` : `nav('workflows')`;
-      return `<div class="cal-chip ${s.type === 'campaign' ? 'camp' : 'wf'}" title="${s.name} ・ ${s.ch} ・ 対象${s.reach.toLocaleString()}名" onclick="event.stopPropagation();${onclick}">${s.ch} ${s.name}</div>`;
-    }).join('');
-    cells.push(`<div class="cal-cell ${d === todayD ? 'today' : ''}"><div class="cal-date">${d}${d === todayD ? ' <span class="cal-today-tag">今日</span>' : ''}</div>${chips}</div>`);
-  }
-  const suppressed = DATA.CUSTOMERS.filter(isSuppressed).length;
-  grid.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:15px;font-weight:600">${y}年 ${m + 1}月</div>
-      <div style="font-size:11.5px;color:var(--text-mute)">予約 ${DATA.SCHEDULE.length} 件 ・ <span style="color:var(--danger)">送信抑制で除外 ${suppressed} 名</span></div>
-    </div>
-    <div class="cal-dows">${dows.map((d, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}</div>
-    <div class="cal-grid-inner">${cells.join('')}</div>`;
-}
-
 /* ===== Insights ===== */
 function renderInsights() {
   $('#insights-list').innerHTML = DATA.INSIGHTS.map((i,idx) => renderInsightCard(i, idx, idx===0)).join('');
@@ -801,8 +604,8 @@ function renderInsights() {
 /* ===== Approvals ===== */
 function renderApprovals() {
   const riskCls = {'高':'b-danger','中':'b-warn','低':'b-neutral'};
-  const body = DATA.APPROVALS.map((a,idx) => `
-    <tr class="clickable" onclick="openApprovalCompose(${idx})">
+  $('#approvals-table tbody').innerHTML = DATA.APPROVALS.map((a,idx) => `
+    <tr class="clickable" onclick="openApproval(${idx})">
       <td><span class="badge b-ai">${a.kind}</span></td>
       <td style="font-weight:500">${a.content}</td>
       <td class="cell-mute">${a.target}</td>
@@ -812,13 +615,12 @@ function renderApprovals() {
       <td class="cell-mute">${a.time}</td>
       <td>
         <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
-          <button class="btn success sm" onclick="resolveApproval(${idx},true)">${Icon('check',12)} 承認</button>
-          <button class="btn ghost sm" onclick="resolveApproval(${idx},false)">却下</button>
+          <button class="btn success sm" onclick="confirmDialog({title:'承認・実行',body:'${a.content}',confirmText:'承認',onConfirm:()=>toast('承認しました')})">${Icon('check',12)} 承認</button>
+          <button class="btn ghost sm" onclick="toast('却下しました')">却下</button>
         </div>
       </td>
     </tr>
   `).join('');
-  $('#approvals-table tbody').innerHTML = body || `<tr><td colspan="8" style="padding:32px;text-align:center;color:var(--text-mute)">${Icon('check',14)} 承認待ちはありません（すべて処理済み）</td></tr>`;
 }
 
 /* ===== Agent log ===== */
@@ -853,31 +655,22 @@ function toast(msg) {
 
 /* ===== Charts ===== */
 let chartsRendered = false;
-let revChart = null;
 function renderCharts() {
   if (chartsRendered) return;
   chartsRendered = true;
   const txt = '#767c95';
   const grid = 'rgba(20,21,42,.06)';
-  const primary = CONFIG.brand.primary, secondary = CONFIG.brand.secondary;
 
-  // Revenue series derived from the SAME metrics as the KPIs (item 6)
-  const k = metricsView(), man = n => Math.round(n / 10000);
-  const past = CONFIG.finance.pastMonths;                       // 過去5ヶ月（万円）
-  const actualSeries = [...past, man(k.actual), null, null, null, null, null, null];
-  const forecastSeries = [null, null, null, null, past[past.length - 1], man(k.forecast), 960, 1000, 1040, 1070, 1100, 1140];
-  const targetSeries = Array(12).fill(man(k.target));
-
-  revChart = new Chart($('#revenueChart'), {
+  new Chart($('#revenueChart'), {
     type: 'line',
     data: {
       labels: ['12月','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月'],
       datasets: [
-        {label:'実績', data: actualSeries,
-          borderColor: primary, backgroundColor: _hexToRgba(primary, .10), fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor: primary},
-        {label:'AI 予測（着地）', data: forecastSeries,
-          borderColor: secondary, borderDash:[5,3], fill:false, tension:.35, borderWidth:2, pointRadius:0},
-        {label:'目標', data: targetSeries,
+        {label:'実績', data:[480,520,610,580,640,684,null,null,null,null,null,null],
+          borderColor:'#6b5cff', backgroundColor:'rgba(107,92,255,.10)', fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor:'#6b5cff'},
+        {label:'AI 予測', data:[null,null,null,null,null,684,780,860,930,980,1020,1080],
+          borderColor:'#06a89e', borderDash:[5,3], fill:false, tension:.35, borderWidth:2, pointRadius:0},
+        {label:'目標', data:Array(12).fill(1000),
           borderColor:'rgba(225,29,72,.45)', borderDash:[2,3], pointRadius:0, fill:false, borderWidth:1.5},
       ]
     },
@@ -894,7 +687,7 @@ function renderCharts() {
     type: 'doughnut',
     data: { labels:['EC','LINE','メール','広告','その他'],
       datasets:[{ data:[42,23,15,12,8],
-        backgroundColor:[primary, secondary,'#2563eb','#d97706','#a4a8bd'],
+        backgroundColor:['#6b5cff','#06a89e','#2563eb','#d97706','#a4a8bd'],
         borderColor:'#ffffff', borderWidth:2 }] },
     options: { responsive: true, maintainAspectRatio: false, cutout:'68%',
       plugins:{ legend:{ position:'right', labels:{ color: txt, font:{size:11}, boxWidth:10, padding:10 } } } }
@@ -922,10 +715,10 @@ function wireStaticElements() {
 
   // Users
   const userRows = [
-    [CONFIG.user.name, CONFIG.user.email, CONFIG.user.role],
-    ['山田（営業）','yamada@seasquare.co.jp','営業'],
-    ['鈴木（CS）','suzuki@seasquare.co.jp','CS'],
-    ['田中（開発）','tanaka@seasquare.co.jp','開発'],
+    ['棶原','kajiwara@alion.jp','管理者'],
+    ['山田（営業）','yamada@alion.jp','営業'],
+    ['鈴木（CS）','suzuki@alion.jp','CS'],
+    ['田中（開発）','tanaka@alion.jp','開発'],
   ];
   $$('#view-users tbody tr').forEach((tr, i) => {
     if (!userRows[i]) return;
@@ -935,120 +728,31 @@ function wireStaticElements() {
     if (editBtn) editBtn.onclick = (e) => { e.stopPropagation(); openUser(...userRows[i]); };
   });
 
-  // Bell はインライン onclick="openNotifications()" で開く（上書きしない）
+  // Bell
+  const bell = $$('header .icon-btn').slice(-1)[0];
+  if (bell) bell.onclick = () => toast('通知: 未読 3 件（AI 承認待ち 4 件、在庫アラート 3 件）');
 
-  // Filter 「適用」 button (customers) — real furniture-segment filter (item 9)
-  $$('.filterbar .btn.primary').forEach(b => b.onclick = applyCustomerFilter);
-}
-
-/* ===== State persistence + cross-screen reactivity (4a) ===== */
-const STORE_KEY = 'seasquare_crm_v1';
-function saveState() {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({
-      tasks: DATA.TASKS.map(t => ({ id: t.id, status: t.status })),
-      approvals: DATA.APPROVALS.map(a => a.content),
-      deals: DATA.DEALS_BOARD.map(c => ({ key: c.key, items: c.items })),
-      inv: DATA.INVENTORY.map(p => ({ sku: p.sku, stock: p.stock })),
-      orders: DATA.ORDERS.map(o => ({ no: o.no, status: o.status })),
-    }));
-  } catch (e) {}
-}
-function loadState() {
-  try {
-    const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if (!s) return;
-    if (s.tasks) s.tasks.forEach(st => { const t = DATA.TASKS.find(x => x.id === st.id); if (t) t.status = st.status; });
-    if (Array.isArray(s.approvals)) DATA.APPROVALS = DATA.APPROVALS.filter(a => s.approvals.includes(a.content));
-    if (s.deals) s.deals.forEach(sc => { const c = DATA.DEALS_BOARD.find(x => x.key === sc.key); if (c && Array.isArray(sc.items)) c.items = sc.items; });
-    if (s.inv) s.inv.forEach(si => { const p = DATA.INVENTORY.find(x => x.sku === si.sku); if (p && typeof si.stock === 'number') p.stock = si.stock; });
-    if (s.orders) s.orders.forEach(so => { const o = DATA.ORDERS.find(x => x.no === so.no); if (o && so.status) o.status = so.status; });
-  } catch (e) {}
-}
-function resetDemo() { try { localStorage.removeItem(STORE_KEY); } catch (e) {} location.reload(); }
-window.resetDemo = resetDemo;
-
-// バッジ・KPI を現在のデータから再同期（画面間連動の要）
-function refreshCounts() {
-  const open = DATA.TASKS.filter(t => t.status === '未対応');
-  const ai = open.filter(t => t.source === 'AI').length;
-  METRICS.openTasks = open.length; METRICS.aiTasks = ai; METRICS.manualTasks = open.length - ai;
-  const set = (id, n) => { const b = document.querySelector('#nav-' + id + ' .ct'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } };
-  set('tasks', open.length); set('approvals', DATA.APPROVALS.length); set('leads', DATA.LEADS.length); set('insights', DATA.INSIGHTS.length);
-  const bd = document.querySelector('header .badge-dot');
-  if (bd) { const n = window.notifRead ? 0 : (DATA.APPROVALS.length ? 1 : 0) + (DATA.INVENTORY.filter(p => p.advice === '発注推奨').length ? 1 : 0) + (DATA.LEADS.filter(l => l.score >= 90).length ? 1 : 0); bd.textContent = n; bd.style.display = n > 0 ? '' : 'none'; }
-  if ($('#view-dashboard').classList.contains('active')) { renderKPIs(); renderDashboard(); }
-}
-
-// 承認待ちの解決 → 一覧から消し、実行ログに記録、全カウント連動
-function resolveApproval(idx, approved) {
-  const a = DATA.APPROVALS[idx];
-  if (!a) return;
-  DATA.AGENT_LOG.unshift({ time: nowTime(), agent: '営業AI', tool: approved ? 'execute_action' : 'reject_action', input: a.content.slice(0, 28), result: approved ? '承認・実行' : '却下', ms: 95, tok: 210, status: approved ? 'success' : 'error' });
-  DATA.APPROVALS.splice(idx, 1);
-  saveState(); renderApprovals(); renderAgentLog(); refreshCounts();
-  toast(approved ? '承認・実行しました' : '却下しました');
-}
-function resolveAllApprovals(approved) {
-  const n = DATA.APPROVALS.length;
-  DATA.APPROVALS.forEach(a => DATA.AGENT_LOG.unshift({ time: nowTime(), agent: '営業AI', tool: approved ? 'execute_action' : 'reject_action', input: a.content.slice(0, 28), result: approved ? '承認・実行' : '却下', ms: 95, tok: 210, status: approved ? 'success' : 'error' }));
-  DATA.APPROVALS = [];
-  saveState(); renderApprovals(); renderAgentLog(); refreshCounts();
-  toast(`${n} 件を${approved ? '承認・実行' : '却下'}しました`);
-}
-// タスク完了 → 完了タブへ移動、受信箱バッジ/KPI連動
-function completeTask(id) {
-  const t = DATA.TASKS.find(x => x.id === id);
-  if (!t) return;
-  t.status = '完了';
-  saveState(); renderTasks(); refreshCounts();
-  toast('タスクを完了にしました');
-}
-// 出荷処理: 注文ステータスを次へ進める（F1）
-function advanceOrder(no) {
-  const o = DATA.ORDERS.find(x => x.no === no);
-  if (!o) return;
-  const steps = ['新規', '出荷準備中', '出荷済', '配送完了'];
-  const i = steps.indexOf(o.status);
-  if (i < 0 || i >= steps.length - 1) return;
-  o.status = steps[i + 1];
-  saveState(); renderOrders();
-  toast(`${no} を「${o.status}」に更新しました`);
-  if (window.openOrder) openOrder(no);
-}
-// 受注→在庫の引当（F4）
-function decrementStock(sku, orderNo) {
-  const p = DATA.INVENTORY.find(x => x.sku === sku);
-  if (!p) return;
-  if (p.stock <= 0) { toast('在庫がありません'); return; }
-  p.stock -= 1;
-  saveState(); renderInventory();
-  toast(`${p.name} の在庫を引当（残 ${p.stock} 点）`);
-  if (orderNo && window.openOrder) openOrder(orderNo);
+  // Filter 「適用」 buttons
+  $$('.filterbar .btn.primary').forEach(b => b.onclick = () => toast('フィルターを適用しました'));
 }
 
 /* ===== Boot ===== */
-loadState();                                    // 保存済み状態を復元（4a）
-DATA.LEADS.forEach(l => l.score = leadScore(l.acts));
-DATA.CUSTOMERS.forEach(c => c.score = leadScore(c.acts));
-METRICS = baseMetrics();                         // 復元後のタスク状態でKPIを再計算
 buildSidebar();
 renderDashboard();
 renderCustomers();
+buildLeadProductFilter();
+renderLeadMatrix();
 renderLeads();
+renderReconcile();
 renderDeals();
 renderTasks();
 renderOrders();
 renderInventory();
 renderCampaigns();
-renderWorkflows();
-renderCalendar();
 renderInsights();
 renderApprovals();
 renderAgentLog();
 wireStaticElements();
-refreshCounts();   // サイドバーのバッジを現在のデータと同期（4a）
-tagTitles(); applyLangTitles();   // ページタイトルを言語に合わせる（i18n）
 
 // Fallback: any unwired button in page-head toasts a placeholder
 document.addEventListener('click', e => {
@@ -1062,6 +766,3 @@ document.addEventListener('click', e => {
 });
 
 nav('dashboard');
-
-// 初回のみオンボーディング（オンボ済みフラグが無ければ表示）
-try { if (!localStorage.getItem('seasquare_onboarded')) setTimeout(() => { if (window.showOnboarding) showOnboarding(); }, 700); } catch (e) {}

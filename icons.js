@@ -50,7 +50,6 @@ window.Icon = function(name, size = 16) {
     flag: '<path d="M5 3v18M5 4h13l-3 4 3 4H5"/>',
     zap: '<polygon points="13,2 4,14 11,14 9,22 20,10 13,10"/>',
     cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/><rect x="9" y="9" width="6" height="6"/>',
-    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
   };
   const path = ico[name] || '';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
